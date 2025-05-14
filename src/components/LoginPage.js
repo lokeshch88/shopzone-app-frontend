@@ -2,13 +2,25 @@
 import React, { useState } from 'react';
 import { TextField, Button, Grid, Typography, Paper } from '@mui/material';
 
+import axios from 'axios';
+
 const LoginPage = () => {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleLogin = () => {
-    // You can add login logic here.
-    alert(`Logging in with: ${email}, ${password}`);
+ const handleLogin = () => {
+    axios.post('http://localhost:8080/user/login', {
+      username,
+      password,
+    })
+    .then(response => {
+      alert(`Logged in successfully with: ${username}`);
+      console.log(response.data); // handle token or user info here
+    })
+    .catch(error => {
+      alert('Login failed');
+      console.error(error);
+    });
   };
 
   return (
@@ -19,12 +31,12 @@ const LoginPage = () => {
             Login
           </Typography>
           <TextField
-            label="Email"
-            type="email"
+            label="username"
+            type="text"
             fullWidth
             margin="normal"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
           />
           <TextField
             label="Password"
