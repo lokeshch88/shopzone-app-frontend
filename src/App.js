@@ -4,6 +4,7 @@ import NavBar from './components/NavBar';
 import LoginPage from './components/LoginPage';
 import DashboardPage from './components/DashboardPage';
 import AdminDashboard from './components/AdminDashboard';
+import HomePage from './components/Home';
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
            <Route path="/admin-dashboard" element={<AdminDashboard />} />
+            <Route path="/home" element={<HomePage />} />
         </Routes>
       </div>
     </Router>
