@@ -15,6 +15,9 @@ const NavBar = () => {
         <Button color="inherit" component={Link} to="/dashboard">
           Dashboard
         </Button>
+        <Button color="inherit" component={Link} to="/admin-dashboard">
+          Admin-Dashboard
+        </Button>
       </Toolbar>
     </AppBar>
   );

@@ -14,8 +14,10 @@ const LoginPage = () => {
       password,
     })
     .then(response => {
-      alert(`Logged in successfully with: ${username}`);
-      console.log(response.data); // handle token or user info here
+      const token = response.data.token;
+      localStorage.setItem('authToken', token); // Save token
+      alert(`Logged in successfully as: ${username}`);
+      console.log(response.data);
     })
     .catch(error => {
       alert('Login failed');
@@ -24,7 +26,7 @@ const LoginPage = () => {
   };
 
   return (
-    <Grid container justifyContent="center" alignItems="center" style={{ minHeight: '100vh' }}>
+    <Grid container justifyContent="center" alignItems="center" style={{ minHeight: '50vh' }}>
       <Grid item xs={12} sm={6} md={4}>
         <Paper elevation={3} style={{ padding: 20 }}>
           <Typography variant="h5" gutterBottom>
