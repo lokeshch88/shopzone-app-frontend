@@ -33,7 +33,7 @@ const LoginPage = () => {
             Login
           </Typography>
           <TextField
-            label="username"
+            label="Username"
             type="text"
             fullWidth
             margin="normal"

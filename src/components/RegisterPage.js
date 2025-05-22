@@ -6,17 +6,21 @@ import {
   Grid,
   Typography,
   Paper,
-  Box,
   useMediaQuery,
   useTheme,
 } from '@mui/material';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 const RegisterPage = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
+  const navigate = useNavigate();
+
   const [form, setForm] = useState({
+    firstName:'',
+    lastName:'',
     username: '',
     email: '',
     password: '',
@@ -25,66 +29,129 @@ const RegisterPage = () => {
 
   const [otpSent, setOtpSent] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const sendOtp = () => {
-    axios.post('http://localhost:8080/user/send-otp', { email: form.email })
-      .then(() => {
-        alert('OTP sent to your email');
-        setOtpSent(true);
-      })
-      .catch((error) => {
-        console.error('Error sending OTP:', error);
-        alert('Failed to send OTP');
-      });
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
   };
 
-  const verifyOtp = () => {
-    axios.post('http://localhost:8080/user/verify-otp', {
+  const handleInitialRegister = async () => {
+    const { username, email, password } = form;
+
+    if (!username || !email || !password) {
+      alert('Please fill in all fields');
+      return;
+    }
+
+    if (!validateEmail(email)) {
+      alert('Please enter a valid email address');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // Check if username or email is already taken
+      const checkRes = await axios.post('http://localhost:8080/user/check-availability', {
+        username,
+        email,
+      });
+      console.log(checkRes.data)
+      if (checkRes.data.msg) {
+        alert(checkRes.data.msg);
+        return;
+      }
+
+      // Send OTP
+      await axios.post('http://localhost:8080/user/send-otp', { email });
+
+      setOtpSent(true);
+      alert('OTP sent to your email');
+    } catch (error) {
+      console.error(error);
+      alert('Error during registration');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const verifyOtp = async () => {
+  setLoading(true);
+  try {
+    // Step 1: Verify OTP
+    const verifyRes = await axios.post('http://localhost:8080/user/verify-otp', {
       email: form.email,
       otp: form.otp,
-    })
-      .then(() => {
-        alert('OTP verified');
-        setOtpVerified(true);
-      })
-      .catch((error) => {
-        console.error('OTP verification failed:', error);
-        alert('Invalid OTP');
-      });
-  };
+    });
 
-  const handleRegister = () => {
-    if (!otpVerified) return alert('Please verify OTP first.');
+    if (verifyRes.data.msg==="OTP verified successfully") {
+      setOtpVerified(true);
+      alert('OTP verified successfully');
 
-    axios.post('http://localhost:8080/user/register', {
-      username: form.username,
-      email: form.email,
-      password: form.password,
-    })
-      .then(() => {
-        alert('Registration successful');
-      })
-      .catch((error) => {
-        console.error('Registration failed:', error);
-        alert('Registration failed');
-      });
-  };
+      // Step 2: Final registration
+      try {
+        await axios.post('http://localhost:8080/user/register', {
+          username: form.username,
+          email: form.email,
+          password: form.password,
+        });
+
+        alert('Registration complete');
+        setForm({
+          username: '',
+          email: '',
+          password: '',
+          otp: '',
+        });
+        setOtpSent(false);
+        setOtpVerified(false);
+
+        // ✅ Redirect to /home
+        navigate('/login');
+      } catch (regErr) {
+        console.error('Registration failed:', regErr);
+        alert('OTP was verified, but registration failed.');
+      }
+    } else {
+      alert('OTP verification failed. Please check your OTP.');
+    }
+  } catch (otpErr) {
+    console.error('OTP verification error:', otpErr?.response?.data || otpErr.message);
+    alert('OTP verification failed due to a network or server error.');
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <Container maxWidth="sm">
       <Paper elevation={3} sx={{ p: { xs: 2, sm: 4 }, mt: { xs: 4, sm: 6 } }}>
-        <Typography
-          variant={isMobile ? 'h6' : 'h5'}
-          gutterBottom
-          textAlign="center"
-        >
+        <Typography variant={isMobile ? 'h6' : 'h5'} gutterBottom textAlign="center">
           Register
         </Typography>
 
+        <TextField
+          label="First Name"
+          name="firstName"
+          fullWidth
+          margin="normal"
+          value={form.firstName}
+          onChange={handleChange}
+        />
+        <TextField
+          label="Last Name"
+          name="lastName"
+          fullWidth
+          margin="normal"
+          value={form.lastName}
+          onChange={handleChange}
+        />
         <TextField
           label="Username"
           name="username"
@@ -104,18 +171,28 @@ const RegisterPage = () => {
           onChange={handleChange}
         />
 
-        <Grid container spacing={1} justifyContent="flex-end" sx={{ mt: 1 }}>
-          <Grid item xs={12} sm="auto">
-            <Button
-              variant="outlined"
-              fullWidth={isMobile}
-              onClick={sendOtp}
-              disabled={otpSent}
-            >
-              {otpSent ? 'OTP Sent' : 'Send OTP'}
-            </Button>
-          </Grid>
-        </Grid>
+        <TextField
+          label="Password"
+          name="password"
+          type="password"
+          fullWidth
+          margin="normal"
+          value={form.password}
+          onChange={handleChange}
+        />
+
+        {!otpSent && (
+          <Button
+            fullWidth
+            variant="contained"
+            color="primary"
+            sx={{ mt: 3 }}
+            onClick={handleInitialRegister}
+            disabled={loading}
+          >
+            {loading ? 'Sending OTP...' : 'Register & Send OTP'}
+          </Button>
+        )}
 
         {otpSent && (
           <>
@@ -135,32 +212,13 @@ const RegisterPage = () => {
                 color="secondary"
                 sx={{ mt: 2 }}
                 onClick={verifyOtp}
+                disabled={loading}
               >
-                Verify OTP
+                {loading ? 'Verifying...' : 'Verify OTP & Complete Registration'}
               </Button>
             )}
           </>
         )}
-
-        <TextField
-          label="Password"
-          name="password"
-          type="password"
-          fullWidth
-          margin="normal"
-          value={form.password}
-          onChange={handleChange}
-        />
-
-        <Button
-          fullWidth
-          variant="contained"
-          color="primary"
-          sx={{ mt: 3 }}
-          onClick={handleRegister}
-        >
-          Register
-        </Button>
       </Paper>
     </Container>
   );
