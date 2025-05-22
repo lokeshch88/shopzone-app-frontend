@@ -96,6 +96,8 @@ const RegisterPage = () => {
       // Step 2: Final registration
       try {
         await axios.post('http://localhost:8080/user/register', {
+          firstName:form.firstName,
+          lastName:form.lastName,
           username: form.username,
           email: form.email,
           password: form.password,
