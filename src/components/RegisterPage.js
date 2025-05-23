@@ -31,8 +31,21 @@ const RegisterPage = () => {
   const [otpVerified, setOtpVerified] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const [changingEmail, setChangingEmail] = useState(false);
+
   const handleChange = (e) => {
+     const { name, value } = e.target;
+
+  if (name === 'username'|| name === 'lastName' || name === 'firstName') {
+    // Allow only alphanumeric characters
+    if (/^[a-zA-Z0-9]*$/.test(value)) {
+      setForm((prevForm) => ({ ...prevForm, [name]: value }));
+    }
+  } else {
+    // setForm((prevForm) => ({ ...prevForm, [name]: value }));
+  
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  }
   };
 
   const validateEmail = (email) => {
@@ -68,10 +81,17 @@ const RegisterPage = () => {
       }
 
       // Send OTP
-      await axios.post('http://localhost:8080/user/send-otp', { email });
+     const resp= await axios.post('http://localhost:8080/user/send-otp', { email });
 
+     if(resp.data.msg==="Otp sent on email"){
       setOtpSent(true);
-      alert('OTP sent to your email');
+     // alert('OTP sent to your email');
+      setChangingEmail(false); // ⬅ Lock the email field again
+     }
+     else{
+      alert(resp.data.msg);
+      return;
+     }
     } catch (error) {
       console.error(error);
       alert('Error during registration');
@@ -84,6 +104,16 @@ const RegisterPage = () => {
   setLoading(true);
   try {
     // Step 1: Verify OTP
+
+     if (form.otp === null || form.otp.trim() === '') {
+         alert('Enter otp');
+          return;
+      }
+
+      if (!/^\d{6}$/.test(form.otp)) {
+  alert('Enter a valid 6-digit numeric OTP');
+  return;
+}
     const verifyRes = await axios.post('http://localhost:8080/user/verify-otp', {
       email: form.email,
       otp: form.otp,
@@ -155,23 +185,41 @@ const RegisterPage = () => {
           onChange={handleChange}
         />
         <TextField
-          label="Username"
-          name="username"
-          fullWidth
-          margin="normal"
-          value={form.username}
-          onChange={handleChange}
-        />
+  label="Username"
+  name="username"
+  fullWidth
+  margin="normal"
+  value={form.username}
+  onChange={handleChange}
+  inputProps={{ maxLength: 15 }}
+/>
 
-        <TextField
-          label="Email"
-          name="email"
-          type="email"
-          fullWidth
-          margin="normal"
-          value={form.email}
-          onChange={handleChange}
-        />
+
+        
+  <TextField
+  label="Email"
+  name="email"
+  type="email"
+  fullWidth
+  margin="normal"
+  value={form.email}
+  onChange={handleChange}
+  disabled={otpSent && !changingEmail}
+/>
+
+{otpSent && !changingEmail && (
+  <Button
+    variant="text"
+    onClick={() => {
+      setChangingEmail(true);
+      setOtpSent(false);       // ⬅ Show "Send OTP" button again
+      setOtpVerified(false);   // ⬅ Optional: reset verification
+      setForm((prev) => ({ ...prev, otp: '' })); // ⬅ Clear OTP input
+    }}
+  >
+    Change Email
+  </Button>
+)}
 
         <TextField
           label="Password"
