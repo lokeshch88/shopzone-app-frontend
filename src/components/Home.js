@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   Container,
   Grid,
@@ -8,24 +8,69 @@ import {
   Typography,
   CardActions,
   Button,
-} from '@mui/material';
-import axios from 'axios';
+  Snackbar,
+  Alert,
+} from "@mui/material";
+import axios from "axios";
 
 const HomePage = () => {
   const [products, setProducts] = useState([]);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
 
-  const token = localStorage.getItem('authToken');
-  
+  const token = localStorage.getItem("authToken");
+  const userId = localStorage.getItem("userId"); // Assume this is set after login
+
   useEffect(() => {
-    axios.get('http://localhost:8080/products/all',
-        {
-             headers: {
-    Authorization: `Bearer ${token}`,
-  },
-        }) // update endpoint as needed
+    axios
+      .get("http://localhost:8080/products/all")
       .then((response) => setProducts(response.data))
-      .catch((error) => console.error('Error loading products:', error));
+      .catch((error) => {
+        console.error("Error loading products:", error);
+        setSnackbar({
+          open: true,
+          message: "Failed to load products.",
+          severity: "error",
+        });
+      });
   }, []);
+
+  const handleBuy = async (productId) => {
+    try {
+      await axios.post(
+        `http://localhost:8080/orders/user/2`, // userId as path variable
+        {
+          productIds: [productId], // or multiple product IDs like [1, 2, 3]
+          totalAmount: 500, // calculate dynamically as needed
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      setSnackbar({
+        open: true,
+        message: "Product purchased successfully!",
+        severity: "success",
+      });
+    } catch (error) {
+      console.error("Buy failed:", error);
+      setSnackbar({
+        open: true,
+        message: "Purchase failed. Please try again.",
+        severity: "error",
+      });
+    }
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar({ ...snackbar, open: false });
+  };
 
   return (
     <Container sx={{ py: 5 }}>
@@ -35,10 +80,12 @@ const HomePage = () => {
       <Grid container spacing={4}>
         {products.map((product) => (
           <Grid item key={product.id} xs={12} sm={6} md={4} lg={3}>
-            <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+            <Card
+              sx={{ height: "100%", display: "flex", flexDirection: "column" }}
+            >
               <CardMedia
                 component="img"
-                image={product.image || 'https://via.placeholder.com/300'}
+                image={product.image || "https://via.placeholder.com/300"}
                 alt={product.name}
                 height="180"
               />
@@ -54,18 +101,42 @@ const HomePage = () => {
                 </Typography>
               </CardContent>
               <CardActions>
-                <Button size="small" variant="contained">Buy</Button>
-                <Button size="small" variant="outlined">Details</Button>
+                <Button
+                  size="small"
+                  variant="contained"
+                  onClick={() => handleBuy(product.id)}
+                >
+                  Buy
+                </Button>
+                <Button size="small" variant="outlined">
+                  Details
+                </Button>
               </CardActions>
             </Card>
           </Grid>
         ))}
         {products.length === 0 && (
-          <Typography textAlign="center" sx={{ width: '100%', mt: 5 }}>
+          <Typography textAlign="center" sx={{ width: "100%", mt: 5 }}>
             No products found.
           </Typography>
         )}
       </Grid>
+
+      {/* Snackbar for Notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={2500}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity={snackbar.severity}
+          sx={{ width: "100%" }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 };
