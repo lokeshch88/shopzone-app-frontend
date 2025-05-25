@@ -22,35 +22,39 @@ const LoginPage = () => {
       .post("http://localhost:8080/user/login", { username, password })
       .then((response) => {
         const token = response.data.token;
+        const userInfo = response.data.user; // assuming user details come here
+        const username = response.data.username;
+        const firstName = response.data.firstName;
+        const lastName = response.data.lastName;
+        const email = response.data.email;
+
         localStorage.setItem("authToken", token);
-        alert(`Logged in successfully as: ${username}`);
+        // localStorage.setItem("userInfo", JSON.stringify(userInfo));
+        localStorage.setItem("username", username);
+        localStorage.setItem("firstName", firstName);
+        localStorage.setItem("lastName", lastName);
+        localStorage.setItem("email", email);
+
+        // You can replace alert with a Snackbar later
+        window.location.href = "/home"; // redirect to home/dashboard
       })
       .catch((error) => {
-        alert("Login failed");
         console.error(error);
+        alert("Login failed");
       });
   };
 
   return (
     <Grid
       container
-      style={{ minHeight: "100vh" }}
+      sx={{
+        height: "80vh",
+        overflow: "hidden",
+      }}
       alignItems="center"
       justifyContent="center"
     >
-      {/* Left Ad/Info Section */}
-      {!isMobile && (
-        <Grid item md={6} sx={{ textAlign: "center", p: 4 }}>
-          <img
-            src="https://via.placeholder.com/400x400?text=Ad+Banner"
-            alt="Advertisement"
-            style={{ width: "100%", maxWidth: 400 }}
-          />
-        </Grid>
-      )}
-
-      {/* Right Login Section */}
-      <Grid item xs={12} sm={8} md={4}>
+      <Grid item xs={10} sm={8} md={4}>
         <Paper elevation={3} sx={{ p: { xs: 3, sm: 4 } }}>
           <Typography variant="h5" gutterBottom align="center">
             Login
