@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router";
 import {
   Container,
   Grid,
@@ -19,10 +20,13 @@ const HomePage = () => {
     open: false,
     message: "",
     severity: "success",
+    duration: 1500,
   });
 
   const token = localStorage.getItem("authToken");
   const userId = localStorage.getItem("userId"); // Assume this is set after login
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     axios
@@ -37,6 +41,44 @@ const HomePage = () => {
         });
       });
   }, []);
+
+  const handleAddToCart = (product) => {
+    try {
+      const existingCart = JSON.parse(localStorage.getItem("cart")) || [];
+      const existingIndex = existingCart.findIndex(
+        (item) => item.id === product.id
+      );
+
+      let updatedCart;
+      if (existingIndex > -1) {
+        // Product already in cart, increment quantity
+        updatedCart = existingCart.map((item, index) =>
+          index === existingIndex
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        );
+      } else {
+        // New product
+        updatedCart = [...existingCart, { ...product, quantity: 1 }];
+      }
+
+      localStorage.setItem("cart", JSON.stringify(updatedCart));
+
+      setSnackbar({
+        open: true,
+        message: "Added to cart!",
+        severity: "success",
+        duration: 1000,
+      });
+    } catch (error) {
+      console.error("Failed to add to cart:", error);
+      setSnackbar({
+        open: true,
+        message: "Unable to add to cart. Please try again.",
+        severity: "error",
+      });
+    }
+  };
 
   const handleBuy = async (productId) => {
     try {
@@ -101,14 +143,25 @@ const HomePage = () => {
                 </Typography>
               </CardContent>
               <CardActions>
-                <Button
+                {/* <Button
                   size="small"
                   variant="contained"
                   onClick={() => handleBuy(product.id)}
                 >
                   Buy
+                </Button> */}
+                <Button
+                  size="small"
+                  variant="contained"
+                  onClick={() => handleAddToCart(product)}
+                >
+                  Add to Cart
                 </Button>
-                <Button size="small" variant="outlined">
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() => navigate(`/product/${product.id}`)}
+                >
                   Details
                 </Button>
               </CardActions>
