@@ -27,6 +27,8 @@ const LoginPage = () => {
         const firstName = response.data.firstName;
         const lastName = response.data.lastName;
         const email = response.data.email;
+        const userId = response.data.userId;
+        const userRole = response.data.userRole;
 
         localStorage.setItem("authToken", token);
         // localStorage.setItem("userInfo", JSON.stringify(userInfo));
@@ -34,6 +36,8 @@ const LoginPage = () => {
         localStorage.setItem("firstName", firstName);
         localStorage.setItem("lastName", lastName);
         localStorage.setItem("email", email);
+        localStorage.setItem("userId", userId);
+        localStorage.setItem("userRole", userRole);
 
         // You can replace alert with a Snackbar later
         window.location.href = "/home"; // redirect to home/dashboard
@@ -48,7 +52,7 @@ const LoginPage = () => {
     <Grid
       container
       sx={{
-        height: "80vh",
+        height: "40vh",
         overflow: "hidden",
       }}
       alignItems="center"

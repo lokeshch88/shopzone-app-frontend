@@ -10,17 +10,30 @@ import {
   TableRow,
   Paper,
   Button,
-  Grid,
-  Divider,
+  TextField,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import axios from "axios";
 
 const AdminDashboard = () => {
   const [users, setUsers] = useState([]);
   const [products, setProducts] = useState([]);
+  const [admin, setAdmin] = useState(null);
+
+  const [searchUser, setSearchUser] = useState("");
+  const [searchProduct, setSearchProduct] = useState("");
+
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+
+  const [isUserDialogOpen, setUserDialogOpen] = useState(false);
+  const [isProductDialogOpen, setProductDialogOpen] = useState(false);
+  const [dialogMode, setDialogMode] = useState("view"); // "add", "update", "view"
 
   const token = localStorage.getItem("authToken");
-  const [admin, setAdmin] = useState(null);
 
   useEffect(() => {
     fetchUsers();
@@ -34,9 +47,7 @@ const AdminDashboard = () => {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => setAdmin(res.data))
-      .catch((err) => {
-        console.error("Failed to load admin info:", err);
-      });
+      .catch((err) => console.error("Failed to load admin info:", err));
   };
 
   const fetchUsers = () => {
@@ -58,18 +69,23 @@ const AdminDashboard = () => {
   };
 
   const handleDeleteUser = (id) => {
-    axios
-      .delete(`http://localhost:8080/user/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then(() => {
-        alert("User deleted");
-        fetchUsers();
-      })
-      .catch((err) => {
-        alert("Failed to delete user");
-        console.error(err);
-      });
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this user?"
+    );
+    if (confirmed) {
+      axios
+        .delete(`http://localhost:8080/user/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        .then(() => {
+          alert("User deleted");
+          fetchUsers();
+        })
+        .catch((err) => {
+          alert("Failed to delete user");
+          console.error(err);
+        });
+    }
   };
 
   const handleDeleteProduct = (id) => {
@@ -87,9 +103,18 @@ const AdminDashboard = () => {
       });
   };
 
+  const filteredUsers = users.filter(
+    (user) =>
+      user.username.toLowerCase().includes(searchUser.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchUser.toLowerCase())
+  );
+
+  const filteredProducts = products.filter((product) =>
+    product.name.toLowerCase().includes(searchProduct.toLowerCase())
+  );
+
   return (
     <Container className="admin-container">
-      {/* Admin Task Summary */}
       <Typography variant="h4" gutterBottom>
         Admin Dashboard
       </Typography>
@@ -97,38 +122,44 @@ const AdminDashboard = () => {
         <Typography variant="h6" gutterBottom>
           Admin Details
         </Typography>
-
         {admin ? (
           <>
-            <Typography variant="body1">
+            <Typography>
               <strong>Username:</strong> {admin.username}
             </Typography>
-            <Typography variant="body1">
+            <Typography>
               <strong>Email:</strong> {admin.email}
             </Typography>
-            <Typography variant="body1" gutterBottom>
+            <Typography gutterBottom>
               <strong>Role:</strong> {admin.role || "Admin"}
             </Typography>
-
-            <Typography variant="h6" sx={{ mt: 2 }}>
-              Admin Tasks
-            </Typography>
-            <ul>
-              <li>Manage users (Update/Delete)</li>
-              <li>Manage products (Update/Delete)</li>
-              <li>Monitor purchase activity</li>
-              <li>Maintain system roles and security</li>
-            </ul>
           </>
         ) : (
           <Typography>Loading admin details...</Typography>
         )}
       </Paper>
 
-      {/* User Management Section */}
-      <Typography variant="h5" gutterBottom>
-        Users
-      </Typography>
+      {/* USER MANAGEMENT */}
+      <Typography variant="h5">Users</Typography>
+      <TextField
+        fullWidth
+        label="Search Users"
+        value={searchUser}
+        onChange={(e) => setSearchUser(e.target.value)}
+        sx={{ my: 2 }}
+      />
+      <Button
+        variant="contained"
+        color="primary"
+        onClick={() => {
+          setDialogMode("add");
+          setSelectedUser({ username: "", email: "" });
+          setUserDialogOpen(true);
+        }}
+        sx={{ mb: 2 }}
+      >
+        Add User
+      </Button>
       <TableContainer component={Paper} sx={{ mb: 4 }}>
         <Table>
           <TableHead>
@@ -140,22 +171,35 @@ const AdminDashboard = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {users.map((user) => (
+            {filteredUsers.map((user) => (
               <TableRow key={user.id}>
                 <TableCell>{user.id}</TableCell>
                 <TableCell>{user.username}</TableCell>
                 <TableCell>{user.email}</TableCell>
                 <TableCell>
                   <Button
-                    variant="outlined"
+                    color="info"
+                    onClick={() => {
+                      setDialogMode("view");
+                      setSelectedUser(user);
+                      setUserDialogOpen(true);
+                    }}
+                    sx={{ mr: 1 }}
+                  >
+                    View
+                  </Button>
+                  <Button
                     color="primary"
-                    sx={{ mr: 1, mb: 1 }}
-                    onClick={() => alert(`Update logic for ${user.username}`)}
+                    onClick={() => {
+                      setDialogMode("update");
+                      setSelectedUser(user);
+                      setUserDialogOpen(true);
+                    }}
+                    sx={{ mr: 1 }}
                   >
                     Update
                   </Button>
                   <Button
-                    variant="outlined"
                     color="error"
                     onClick={() => handleDeleteUser(user.id)}
                   >
@@ -164,22 +208,32 @@ const AdminDashboard = () => {
                 </TableCell>
               </TableRow>
             ))}
-            {users.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={4} align="center">
-                  No users found.
-                </TableCell>
-              </TableRow>
-            )}
           </TableBody>
         </Table>
       </TableContainer>
 
-      {/* Product Management Section */}
-      <Typography variant="h5" gutterBottom>
-        Products
-      </Typography>
-      <TableContainer component={Paper} sx={{ mb: 4 }}>
+      {/* PRODUCT MANAGEMENT */}
+      <Typography variant="h5">Products</Typography>
+      <TextField
+        fullWidth
+        label="Search Products"
+        value={searchProduct}
+        onChange={(e) => setSearchProduct(e.target.value)}
+        sx={{ my: 2 }}
+      />
+      <Button
+        variant="contained"
+        color="primary"
+        onClick={() => {
+          setDialogMode("add");
+          setSelectedProduct({ name: "", price: "", description: "" });
+          setProductDialogOpen(true);
+        }}
+        sx={{ mb: 2 }}
+      >
+        Add Product
+      </Button>
+      <TableContainer component={Paper}>
         <Table>
           <TableHead>
             <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
@@ -191,7 +245,7 @@ const AdminDashboard = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {products.map((product) => (
+            {filteredProducts.map((product) => (
               <TableRow key={product.id}>
                 <TableCell>{product.id}</TableCell>
                 <TableCell>{product.name}</TableCell>
@@ -199,15 +253,28 @@ const AdminDashboard = () => {
                 <TableCell>{product.description}</TableCell>
                 <TableCell>
                   <Button
-                    variant="outlined"
+                    color="info"
+                    onClick={() => {
+                      setDialogMode("view");
+                      setSelectedProduct(product);
+                      setProductDialogOpen(true);
+                    }}
+                    sx={{ mr: 1 }}
+                  >
+                    View
+                  </Button>
+                  <Button
                     color="primary"
-                    sx={{ mr: 1, mb: 1 }}
-                    onClick={() => alert(`Update logic for ${product.name}`)}
+                    onClick={() => {
+                      setDialogMode("update");
+                      setSelectedProduct(product);
+                      setProductDialogOpen(true);
+                    }}
+                    sx={{ mr: 1 }}
                   >
                     Update
                   </Button>
                   <Button
-                    variant="outlined"
                     color="error"
                     onClick={() => handleDeleteProduct(product.id)}
                   >
@@ -216,16 +283,195 @@ const AdminDashboard = () => {
                 </TableCell>
               </TableRow>
             ))}
-            {products.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={5} align="center">
-                  No products found.
-                </TableCell>
-              </TableRow>
-            )}
           </TableBody>
         </Table>
       </TableContainer>
+
+      {/* USER DIALOG */}
+      <Dialog
+        open={isUserDialogOpen}
+        onClose={() => setUserDialogOpen(false)}
+        fullWidth
+      >
+        <DialogTitle>
+          {dialogMode === "add"
+            ? "Add User"
+            : dialogMode === "update"
+            ? "Update User"
+            : "User Details"}
+        </DialogTitle>
+        <DialogContent>
+          <TextField
+            margin="dense"
+            label="Username"
+            fullWidth
+            value={selectedUser?.username || ""}
+            disabled={dialogMode === "view"}
+            onChange={(e) =>
+              setSelectedUser({ ...selectedUser, username: e.target.value })
+            }
+          />
+          <TextField
+            margin="dense"
+            label="Email"
+            fullWidth
+            value={selectedUser?.email || ""}
+            disabled={dialogMode === "view"}
+            onChange={(e) =>
+              setSelectedUser({ ...selectedUser, email: e.target.value })
+            }
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setUserDialogOpen(false)}>Cancel</Button>
+          {(dialogMode === "add" || dialogMode === "update") && (
+            <Button
+              onClick={() => {
+                if (!selectedUser.username || !selectedUser.email) {
+                  alert("Please fill all fields");
+                  return;
+                }
+                if (dialogMode === "add") {
+                  axios
+                    .post("http://localhost:8080/user", selectedUser, {
+                      headers: { Authorization: `Bearer ${token}` },
+                    })
+                    .then(() => {
+                      alert("User added successfully");
+                      setUserDialogOpen(false);
+                      fetchUsers();
+                    })
+                    .catch((err) => {
+                      alert("Failed to add user");
+                      console.error(err);
+                    });
+                } else if (dialogMode === "update") {
+                  axios
+                    .put(
+                      `http://localhost:8080/user/${selectedUser.id}`,
+                      selectedUser,
+                      {
+                        headers: { Authorization: `Bearer ${token}` },
+                      }
+                    )
+                    .then(() => {
+                      alert("User updated successfully");
+                      setUserDialogOpen(false);
+                      fetchUsers();
+                    })
+                    .catch((err) => {
+                      alert("Failed to update user");
+                      console.error(err);
+                    });
+                }
+              }}
+            >
+              {dialogMode === "add" ? "Add" : "Update"}
+            </Button>
+          )}
+        </DialogActions>
+      </Dialog>
+
+      {/* PRODUCT DIALOG */}
+      <Dialog
+        open={isProductDialogOpen}
+        onClose={() => setProductDialogOpen(false)}
+        fullWidth
+      >
+        <DialogTitle>
+          {dialogMode === "add"
+            ? "Add Product"
+            : dialogMode === "update"
+            ? "Update Product"
+            : "Product Details"}
+        </DialogTitle>
+        <DialogContent>
+          <TextField
+            margin="dense"
+            label="Name"
+            fullWidth
+            value={selectedProduct?.name || ""}
+            disabled={dialogMode === "view"}
+            onChange={(e) =>
+              setSelectedProduct({ ...selectedProduct, name: e.target.value })
+            }
+          />
+          <TextField
+            margin="dense"
+            label="Price"
+            type="number"
+            fullWidth
+            value={selectedProduct?.price || ""}
+            disabled={dialogMode === "view"}
+            onChange={(e) =>
+              setSelectedProduct({ ...selectedProduct, price: e.target.value })
+            }
+          />
+          <TextField
+            margin="dense"
+            label="Description"
+            fullWidth
+            multiline
+            rows={3}
+            value={selectedProduct?.description || ""}
+            disabled={dialogMode === "view"}
+            onChange={(e) =>
+              setSelectedProduct({
+                ...selectedProduct,
+                description: e.target.value,
+              })
+            }
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setProductDialogOpen(false)}>Cancel</Button>
+          {(dialogMode === "add" || dialogMode === "update") && (
+            <Button
+              onClick={() => {
+                if (!selectedProduct.name || !selectedProduct.price) {
+                  alert("Please fill all required fields");
+                  return;
+                }
+                if (dialogMode === "add") {
+                  axios
+                    .post("http://localhost:8080/products", selectedProduct, {
+                      headers: { Authorization: `Bearer ${token}` },
+                    })
+                    .then(() => {
+                      alert("Product added successfully");
+                      setProductDialogOpen(false);
+                      fetchProducts();
+                    })
+                    .catch((err) => {
+                      alert("Failed to add product");
+                      console.error(err);
+                    });
+                } else if (dialogMode === "update") {
+                  axios
+                    .put(
+                      `http://localhost:8080/products/${selectedProduct.id}`,
+                      selectedProduct,
+                      {
+                        headers: { Authorization: `Bearer ${token}` },
+                      }
+                    )
+                    .then(() => {
+                      alert("Product updated successfully");
+                      setProductDialogOpen(false);
+                      fetchProducts();
+                    })
+                    .catch((err) => {
+                      alert("Failed to update product");
+                      console.error(err);
+                    });
+                }
+              }}
+            >
+              {dialogMode === "add" ? "Add" : "Update"}
+            </Button>
+          )}
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };

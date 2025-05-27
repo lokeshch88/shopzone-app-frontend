@@ -49,7 +49,10 @@ const NavBar = () => {
     { label: "Register", path: "/register-user" },
   ];
 
-  const userNav = [{ label: "Home", path: "/home" }];
+  const userNav = [
+    { label: "Home", path: "/home" },
+    { label: "Cart", path: "/cart" },
+  ];
 
   const adminNav = [
     ...userNav,
