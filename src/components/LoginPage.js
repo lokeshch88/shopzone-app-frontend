@@ -52,7 +52,7 @@ const LoginPage = () => {
     <Grid
       container
       sx={{
-        height: "40vh",
+        height: "50vh",
         overflow: "hidden",
       }}
       alignItems="center"
@@ -81,9 +81,19 @@ const LoginPage = () => {
           />
           <Button
             fullWidth
-            variant="contained"
-            color="primary"
-            sx={{ mt: 3 }}
+            variant="outlined"
+            sx={{
+              mt: 3,
+              backgroundColor: "#ffffff",
+              color: "#000000",
+              border: "2px solid #000000",
+              fontWeight: "bold",
+              "&:hover": {
+                backgroundColor: "#000000",
+                color: "#ffffff",
+                border: "2px solid #000000",
+              },
+            }}
             onClick={handleLogin}
           >
             Login

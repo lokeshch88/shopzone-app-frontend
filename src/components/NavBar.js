@@ -66,7 +66,15 @@ const NavBar = () => {
     : userNav;
 
   return (
-    <AppBar position="static">
+    <AppBar
+      position="static"
+      sx={{
+        backgroundColor: "#ffffff", // White background
+        color: "#000000", // Black text
+        boxShadow: "none", // Remove default shadow
+        borderBottom: "2px solid #000", // Add black underline
+      }}
+    >
       <Toolbar>
         <Typography variant="h6" sx={{ flexGrow: 1 }}>
           ShopZone
