@@ -15,6 +15,10 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel,
 } from "@mui/material";
 import axios from "axios";
 
@@ -34,6 +38,23 @@ const AdminDashboard = () => {
   const [dialogMode, setDialogMode] = useState("view"); // "add", "update", "view"
 
   const token = localStorage.getItem("authToken");
+
+  const [categories, setCategories] = useState([]);
+
+  useEffect(() => {
+    if (isProductDialogOpen) {
+      axios
+        .get("http://localhost:8080/categories", {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        .then((response) => {
+          setCategories(response.data); // assuming response.data is an array
+        })
+        .catch((err) => {
+          console.error("Failed to fetch categories", err);
+        });
+    }
+  }, [isProductDialogOpen]);
 
   useEffect(() => {
     fetchUsers();
@@ -422,6 +443,96 @@ const AdminDashboard = () => {
               })
             }
           />
+          <TextField
+            margin="dense"
+            label="Quantity"
+            type="number"
+            fullWidth
+            value={selectedProduct?.quantityInStock || ""}
+            disabled={dialogMode === "view"}
+            onChange={(e) =>
+              setSelectedProduct({
+                ...selectedProduct,
+                quantityInStock: e.target.value,
+              })
+            }
+          />
+          <TextField
+            margin="dense"
+            label="Brand"
+            fullWidth
+            value={selectedProduct?.brand || ""}
+            disabled={dialogMode === "view"}
+            onChange={(e) =>
+              setSelectedProduct({ ...selectedProduct, brand: e.target.value })
+            }
+          />
+          {/* <TextField
+            margin="dense"
+            label="Category"
+            fullWidth
+            value={selectedProduct?.category || ""}
+            disabled={dialogMode === "view"}
+            onChange={(e) =>
+              setSelectedProduct({
+                ...selectedProduct,
+                category: e.target.value,
+              })
+            }
+          /> */}
+          <FormControl margin="dense" fullWidth>
+            <InputLabel>Category</InputLabel>
+            <Select
+              value={selectedProduct?.category || ""}
+              onChange={(e) =>
+                setSelectedProduct({
+                  ...selectedProduct,
+                  category: e.target.value,
+                })
+              }
+              disabled={dialogMode === "view"}
+            >
+              {categories.map((cat) => (
+                <MenuItem key={cat.id} value={cat.name}>
+                  {cat.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <TextField
+            margin="dense"
+            label="SKU"
+            fullWidth
+            value={selectedProduct?.sku || ""}
+            disabled={dialogMode === "view"}
+            onChange={(e) =>
+              setSelectedProduct({ ...selectedProduct, sku: e.target.value })
+            }
+          />
+          <TextField
+            margin="dense"
+            label="MRP"
+            fullWidth
+            value={selectedProduct?.mrp || ""}
+            disabled={dialogMode === "view"}
+            onChange={(e) =>
+              setSelectedProduct({ ...selectedProduct, mrp: e.target.value })
+            }
+          />
+          <TextField
+            margin="dense"
+            label="Active"
+            fullWidth
+            value={selectedProduct?.isActive || ""}
+            disabled={dialogMode === "view"}
+            onChange={(e) =>
+              setSelectedProduct({
+                ...selectedProduct,
+                isActive: e.target.value,
+              })
+            }
+          />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setProductDialogOpen(false)}>Cancel</Button>
@@ -434,9 +545,13 @@ const AdminDashboard = () => {
                 }
                 if (dialogMode === "add") {
                   axios
-                    .post("http://localhost:8080/products", selectedProduct, {
-                      headers: { Authorization: `Bearer ${token}` },
-                    })
+                    .post(
+                      "http://localhost:8080/products/create",
+                      selectedProduct,
+                      {
+                        headers: { Authorization: `Bearer ${token}` },
+                      }
+                    )
                     .then(() => {
                       alert("Product added successfully");
                       setProductDialogOpen(false);
@@ -448,7 +563,7 @@ const AdminDashboard = () => {
                     });
                 } else if (dialogMode === "update") {
                   axios
-                    .put(
+                    .patch(
                       `http://localhost:8080/products/${selectedProduct.id}`,
                       selectedProduct,
                       {
