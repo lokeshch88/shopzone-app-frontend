@@ -87,13 +87,13 @@ const RegisterPage = () => {
       const resp = await axios.post("http://localhost:8080/user/send-otp", {
         email,
       });
-
+      setOtpSent(true);
       if (resp.data.msg === "Otp sent on email") {
         setOtpSent(true);
         // alert('OTP sent to your email');
         setChangingEmail(false); // ⬅ Lock the email field again
       } else {
-        alert(resp.data.msg);
+        //alert(resp.data.msg);
         return;
       }
     } catch (error) {
@@ -188,6 +188,22 @@ const RegisterPage = () => {
           margin="normal"
           value={form.firstName}
           onChange={handleChange}
+          sx={{
+            "& .MuiInputLabel-root": {
+              color: "rgba(0, 0, 0, 0.6)", // subtle grayish black like placeholder
+              fontWeight: "normal",
+            },
+            "& .MuiInputLabel-root.Mui-focused": {
+              color: "#000000", // pure black on focus
+            },
+            "& .MuiOutlinedInput-root:hover fieldset": {
+              borderColor: "#000000",
+            },
+            "& .MuiOutlinedInput-root.Mui-focused fieldset": {
+              borderColor: "#000000",
+              boxShadow: "none",
+            },
+          }}
         />
         <TextField
           label="Last Name"
@@ -196,6 +212,22 @@ const RegisterPage = () => {
           margin="normal"
           value={form.lastName}
           onChange={handleChange}
+          sx={{
+            "& .MuiInputLabel-root": {
+              color: "rgba(0, 0, 0, 0.6)", // subtle grayish black like placeholder
+              fontWeight: "normal",
+            },
+            "& .MuiInputLabel-root.Mui-focused": {
+              color: "#000000", // pure black on focus
+            },
+            "& .MuiOutlinedInput-root:hover fieldset": {
+              borderColor: "#000000",
+            },
+            "& .MuiOutlinedInput-root.Mui-focused fieldset": {
+              borderColor: "#000000",
+              boxShadow: "none",
+            },
+          }}
         />
         <TextField
           label="Username"
@@ -205,6 +237,22 @@ const RegisterPage = () => {
           value={form.username}
           onChange={handleChange}
           inputProps={{ maxLength: 15 }}
+          sx={{
+            "& .MuiInputLabel-root": {
+              color: "rgba(0, 0, 0, 0.6)", // subtle grayish black like placeholder
+              fontWeight: "normal",
+            },
+            "& .MuiInputLabel-root.Mui-focused": {
+              color: "#000000", // pure black on focus
+            },
+            "& .MuiOutlinedInput-root:hover fieldset": {
+              borderColor: "#000000",
+            },
+            "& .MuiOutlinedInput-root.Mui-focused fieldset": {
+              borderColor: "#000000",
+              boxShadow: "none",
+            },
+          }}
         />
 
         <TextField
@@ -216,6 +264,22 @@ const RegisterPage = () => {
           value={form.email}
           onChange={handleChange}
           disabled={otpSent && !changingEmail}
+          sx={{
+            "& .MuiInputLabel-root": {
+              color: "rgba(0, 0, 0, 0.6)", // subtle grayish black like placeholder
+              fontWeight: "normal",
+            },
+            "& .MuiInputLabel-root.Mui-focused": {
+              color: "#000000", // pure black on focus
+            },
+            "& .MuiOutlinedInput-root:hover fieldset": {
+              borderColor: "#000000",
+            },
+            "& .MuiOutlinedInput-root.Mui-focused fieldset": {
+              borderColor: "#000000",
+              boxShadow: "none",
+            },
+          }}
         />
 
         {otpSent && !changingEmail && (
@@ -240,14 +304,40 @@ const RegisterPage = () => {
           margin="normal"
           value={form.password}
           onChange={handleChange}
+          sx={{
+            "& .MuiInputLabel-root": {
+              color: "rgba(0, 0, 0, 0.6)", // subtle grayish black like placeholder
+              fontWeight: "normal",
+            },
+            "& .MuiInputLabel-root.Mui-focused": {
+              color: "#000000", // pure black on focus
+            },
+            "& .MuiOutlinedInput-root:hover fieldset": {
+              borderColor: "#000000",
+            },
+            "& .MuiOutlinedInput-root.Mui-focused fieldset": {
+              borderColor: "#000000",
+              boxShadow: "none",
+            },
+          }}
         />
 
         {!otpSent && (
           <Button
             fullWidth
-            variant="contained"
-            color="primary"
-            sx={{ mt: 3 }}
+            variant="outlined"
+            sx={{
+              mt: 3,
+              backgroundColor: "#ffffff",
+              color: "#000000",
+              border: "2px solid #000000",
+              fontWeight: "bold",
+              "&:hover": {
+                backgroundColor: "#000000",
+                color: "#ffffff",
+                border: "2px solid #000000",
+              },
+            }}
             onClick={handleInitialRegister}
             disabled={loading}
           >
@@ -264,14 +354,40 @@ const RegisterPage = () => {
               margin="normal"
               value={form.otp}
               onChange={handleChange}
+              sx={{
+                "& .MuiInputLabel-root": {
+                  color: "rgba(0, 0, 0, 0.6)", // subtle grayish black like placeholder
+                  fontWeight: "normal",
+                },
+                "& .MuiInputLabel-root.Mui-focused": {
+                  color: "#000000", // pure black on focus
+                },
+                "& .MuiOutlinedInput-root:hover fieldset": {
+                  borderColor: "#000000",
+                },
+                "& .MuiOutlinedInput-root.Mui-focused fieldset": {
+                  borderColor: "#000000",
+                  boxShadow: "none",
+                },
+              }}
             />
 
             {!otpVerified && (
               <Button
-                variant="contained"
+                variant="outlined"
                 fullWidth
-                color="secondary"
-                sx={{ mt: 2 }}
+                sx={{
+                  mt: 3,
+                  backgroundColor: "#ffffff",
+                  color: "#000000",
+                  border: "2px solid #000000",
+                  fontWeight: "bold",
+                  "&:hover": {
+                    backgroundColor: "#000000",
+                    color: "#ffffff",
+                    border: "2px solid #000000",
+                  },
+                }}
                 onClick={verifyOtp}
                 disabled={loading}
               >

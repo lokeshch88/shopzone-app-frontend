@@ -18,6 +18,10 @@ const LoginPage = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   const handleLogin = () => {
+    if (username === "" || password === "") {
+      window.alert("Username or Password can't be blank");
+      return;
+    }
     axios
       .post("http://localhost:8080/user/login", { username, password })
       .then((response) => {
@@ -70,6 +74,22 @@ const LoginPage = () => {
             margin="normal"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
+            sx={{
+              "& .MuiInputLabel-root": {
+                color: "rgba(0, 0, 0, 0.6)", // subtle grayish black like placeholder
+                fontWeight: "normal",
+              },
+              "& .MuiInputLabel-root.Mui-focused": {
+                color: "#000000", // pure black on focus
+              },
+              "& .MuiOutlinedInput-root:hover fieldset": {
+                borderColor: "#000000",
+              },
+              "& .MuiOutlinedInput-root.Mui-focused fieldset": {
+                borderColor: "#000000",
+                boxShadow: "none",
+              },
+            }}
           />
           <TextField
             label="Password"
@@ -78,6 +98,22 @@ const LoginPage = () => {
             margin="normal"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            sx={{
+              "& .MuiInputLabel-root": {
+                color: "rgba(0, 0, 0, 0.6)", // subtle grayish black like placeholder
+                fontWeight: "normal",
+              },
+              "& .MuiInputLabel-root.Mui-focused": {
+                color: "#000000", // pure black on focus
+              },
+              "& .MuiOutlinedInput-root:hover fieldset": {
+                borderColor: "#000000",
+              },
+              "& .MuiOutlinedInput-root.Mui-focused fieldset": {
+                borderColor: "#000000",
+                boxShadow: "none",
+              },
+            }}
           />
           <Button
             fullWidth
