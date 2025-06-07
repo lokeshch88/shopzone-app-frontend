@@ -10,6 +10,7 @@ import CartPage from "./components/CartPage";
 import ProductPage from "./components/ProductPage";
 import PaymentPage from "./components/paymentPage";
 import PaymentResultPage from "./components/PaymentResultPage";
+import OrdersPage from "./components/OrderPage";
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
           <Route path="/product/:id" element={<ProductPage />} />
           <Route path="/proceed-payment" element={<PaymentPage />} />
           <Route path="/payment-result" element={<PaymentResultPage />} />
+          <Route path="/orders" element={<OrdersPage />} />
         </Routes>
       </div>
     </Router>

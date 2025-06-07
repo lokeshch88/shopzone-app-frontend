@@ -52,6 +52,7 @@ const NavBar = () => {
   const userNav = [
     { label: "Home", path: "/home" },
     { label: "Cart", path: "/cart" },
+    { label: "Orders", path: "/orders" },
   ];
 
   const adminNav = [
