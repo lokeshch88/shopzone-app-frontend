@@ -65,7 +65,7 @@ const AdminDashboard = () => {
 
   const fetchAdminDetails = () => {
     axios
-      .get("http://localhost:8080/user/me", {
+      .get("http://localhost:8080/user/auth/me", {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => setAdmin(res.data))
@@ -355,7 +355,7 @@ const AdminDashboard = () => {
                 }
                 if (dialogMode === "add") {
                   axios
-                    .post("http://localhost:8080/user", selectedUser, {
+                    .post("http://localhost:8080/user/register", selectedUser, {
                       headers: { Authorization: `Bearer ${token}` },
                     })
                     .then(() => {
