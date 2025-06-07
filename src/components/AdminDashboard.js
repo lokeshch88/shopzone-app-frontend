@@ -44,11 +44,12 @@ const AdminDashboard = () => {
   useEffect(() => {
     if (isProductDialogOpen) {
       axios
-        .get("http://localhost:8080/categories", {
+        .get("http://localhost:8080/category/get-all", {
           headers: { Authorization: `Bearer ${token}` },
         })
         .then((response) => {
           setCategories(response.data); // assuming response.data is an array
+          console.log(response.data);
         })
         .catch((err) => {
           console.error("Failed to fetch categories", err);
@@ -467,33 +468,21 @@ const AdminDashboard = () => {
               setSelectedProduct({ ...selectedProduct, brand: e.target.value })
             }
           />
-          {/* <TextField
-            margin="dense"
-            label="Category"
-            fullWidth
-            value={selectedProduct?.category || ""}
-            disabled={dialogMode === "view"}
-            onChange={(e) =>
-              setSelectedProduct({
-                ...selectedProduct,
-                category: e.target.value,
-              })
-            }
-          /> */}
+
           <FormControl margin="dense" fullWidth>
             <InputLabel>Category</InputLabel>
             <Select
-              value={selectedProduct?.category || ""}
+              value={selectedProduct?.categoryId || ""}
               onChange={(e) =>
                 setSelectedProduct({
                   ...selectedProduct,
-                  category: e.target.value,
+                  categoryId: e.target.value, // this will be the category ID
                 })
               }
               disabled={dialogMode === "view"}
             >
               {categories.map((cat) => (
-                <MenuItem key={cat.id} value={cat.name}>
+                <MenuItem key={cat.id} value={cat.id}>
                   {cat.name}
                 </MenuItem>
               ))}
@@ -558,7 +547,7 @@ const AdminDashboard = () => {
                       fetchProducts();
                     })
                     .catch((err) => {
-                      alert("Failed to add product");
+                      alert(err.response.data.error);
                       console.error(err);
                     });
                 } else if (dialogMode === "update") {
