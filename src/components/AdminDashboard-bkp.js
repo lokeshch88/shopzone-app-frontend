@@ -15,16 +15,16 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Grid,
-  Divider,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel,
 } from "@mui/material";
 import axios from "axios";
 
 const AdminDashboard = () => {
   const [users, setUsers] = useState([]);
   const [products, setProducts] = useState([]);
-
-  const token = localStorage.getItem("authToken");
   const [admin, setAdmin] = useState(null);
 
   const [searchUser, setSearchUser] = useState("");
@@ -35,7 +35,27 @@ const AdminDashboard = () => {
 
   const [isUserDialogOpen, setUserDialogOpen] = useState(false);
   const [isProductDialogOpen, setProductDialogOpen] = useState(false);
-  const [dialogMode, setDialogMode] = useState("view"); // "add" | "update" | "view"
+  const [dialogMode, setDialogMode] = useState("view"); // "add", "update", "view"
+
+  const token = localStorage.getItem("authToken");
+
+  const [categories, setCategories] = useState([]);
+
+  useEffect(() => {
+    if (isProductDialogOpen) {
+      axios
+        .get("http://localhost:8080/category/get-all", {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        .then((response) => {
+          setCategories(response.data); // assuming response.data is an array
+          console.log(response.data);
+        })
+        .catch((err) => {
+          console.error("Failed to fetch categories", err);
+        });
+    }
+  }, [isProductDialogOpen]);
 
   useEffect(() => {
     fetchUsers();
@@ -45,13 +65,11 @@ const AdminDashboard = () => {
 
   const fetchAdminDetails = () => {
     axios
-      .get("http://localhost:8080/user/me", {
+      .get("http://localhost:8080/user/auth/me", {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => setAdmin(res.data))
-      .catch((err) => {
-        console.error("Failed to load admin info:", err);
-      });
+      .catch((err) => console.error("Failed to load admin info:", err));
   };
 
   const fetchUsers = () => {
@@ -73,18 +91,23 @@ const AdminDashboard = () => {
   };
 
   const handleDeleteUser = (id) => {
-    axios
-      .delete(`http://localhost:8080/user/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then(() => {
-        alert("User deleted");
-        fetchUsers();
-      })
-      .catch((err) => {
-        alert("Failed to delete user");
-        console.error(err);
-      });
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this user?"
+    );
+    if (confirmed) {
+      axios
+        .delete(`http://localhost:8080/user/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        .then(() => {
+          alert("User deleted");
+          fetchUsers();
+        })
+        .catch((err) => {
+          alert("Failed to delete user");
+          console.error(err);
+        });
+    }
   };
 
   const handleDeleteProduct = (id) => {
@@ -114,6 +137,179 @@ const AdminDashboard = () => {
 
   return (
     <Container className="admin-container">
+      <Typography variant="h4" gutterBottom>
+        Admin Dashboard
+      </Typography>
+      <Paper sx={{ p: 2, mb: 4 }}>
+        <Typography variant="h6" gutterBottom>
+          Admin Details
+        </Typography>
+        {admin ? (
+          <>
+            <Typography>
+              <strong>Username:</strong> {admin.username}
+            </Typography>
+            <Typography>
+              <strong>Email:</strong> {admin.email}
+            </Typography>
+            <Typography gutterBottom>
+              <strong>Role:</strong> {admin.role || "Admin"}
+            </Typography>
+          </>
+        ) : (
+          <Typography>Loading admin details...</Typography>
+        )}
+      </Paper>
+
+      {/* USER MANAGEMENT */}
+      <Typography variant="h5">Users</Typography>
+      <TextField
+        fullWidth
+        label="Search Users"
+        value={searchUser}
+        onChange={(e) => setSearchUser(e.target.value)}
+        sx={{ my: 2 }}
+      />
+      <Button
+        variant="contained"
+        color="primary"
+        onClick={() => {
+          setDialogMode("add");
+          setSelectedUser({ username: "", email: "" });
+          setUserDialogOpen(true);
+        }}
+        sx={{ mb: 2 }}
+      >
+        Add User
+      </Button>
+      <TableContainer component={Paper} sx={{ mb: 4 }}>
+        <Table>
+          <TableHead>
+            <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
+              <TableCell>ID</TableCell>
+              <TableCell>Username</TableCell>
+              <TableCell>Email</TableCell>
+              <TableCell>Actions</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {filteredUsers.map((user) => (
+              <TableRow key={user.id}>
+                <TableCell>{user.id}</TableCell>
+                <TableCell>{user.username}</TableCell>
+                <TableCell>{user.email}</TableCell>
+                <TableCell>
+                  <Button
+                    color="info"
+                    onClick={() => {
+                      setDialogMode("view");
+                      setSelectedUser(user);
+                      setUserDialogOpen(true);
+                    }}
+                    sx={{ mr: 1 }}
+                  >
+                    View
+                  </Button>
+                  <Button
+                    color="primary"
+                    onClick={() => {
+                      setDialogMode("update");
+                      setSelectedUser(user);
+                      setUserDialogOpen(true);
+                    }}
+                    sx={{ mr: 1 }}
+                  >
+                    Update
+                  </Button>
+                  <Button
+                    color="error"
+                    onClick={() => handleDeleteUser(user.id)}
+                  >
+                    Delete
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+
+      {/* PRODUCT MANAGEMENT */}
+      <Typography variant="h5">Products</Typography>
+      <TextField
+        fullWidth
+        label="Search Products"
+        value={searchProduct}
+        onChange={(e) => setSearchProduct(e.target.value)}
+        sx={{ my: 2 }}
+      />
+      <Button
+        variant="contained"
+        color="primary"
+        onClick={() => {
+          setDialogMode("add");
+          setSelectedProduct({ name: "", price: "", description: "" });
+          setProductDialogOpen(true);
+        }}
+        sx={{ mb: 2 }}
+      >
+        Add Product
+      </Button>
+      <TableContainer component={Paper}>
+        <Table>
+          <TableHead>
+            <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
+              <TableCell>ID</TableCell>
+              <TableCell>Name</TableCell>
+              <TableCell>Price</TableCell>
+              <TableCell>Description</TableCell>
+              <TableCell>Actions</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {filteredProducts.map((product) => (
+              <TableRow key={product.id}>
+                <TableCell>{product.id}</TableCell>
+                <TableCell>{product.name}</TableCell>
+                <TableCell>₹{product.price}</TableCell>
+                <TableCell>{product.description}</TableCell>
+                <TableCell>
+                  <Button
+                    color="info"
+                    onClick={() => {
+                      setDialogMode("view");
+                      setSelectedProduct(product);
+                      setProductDialogOpen(true);
+                    }}
+                    sx={{ mr: 1 }}
+                  >
+                    View
+                  </Button>
+                  <Button
+                    color="primary"
+                    onClick={() => {
+                      setDialogMode("update");
+                      setSelectedProduct(product);
+                      setProductDialogOpen(true);
+                    }}
+                    sx={{ mr: 1 }}
+                  >
+                    Update
+                  </Button>
+                  <Button
+                    color="error"
+                    onClick={() => handleDeleteProduct(product.id)}
+                  >
+                    Delete
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+
+      {/* USER DIALOG */}
       <Dialog
         open={isUserDialogOpen}
         onClose={() => setUserDialogOpen(false)}
@@ -131,8 +327,8 @@ const AdminDashboard = () => {
             margin="dense"
             label="Username"
             fullWidth
-            disabled={dialogMode === "view"}
             value={selectedUser?.username || ""}
+            disabled={dialogMode === "view"}
             onChange={(e) =>
               setSelectedUser({ ...selectedUser, username: e.target.value })
             }
@@ -141,8 +337,8 @@ const AdminDashboard = () => {
             margin="dense"
             label="Email"
             fullWidth
-            disabled={dialogMode === "view"}
             value={selectedUser?.email || ""}
+            disabled={dialogMode === "view"}
             onChange={(e) =>
               setSelectedUser({ ...selectedUser, email: e.target.value })
             }
@@ -150,17 +346,26 @@ const AdminDashboard = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setUserDialogOpen(false)}>Cancel</Button>
-          {dialogMode !== "view" && (
+          {(dialogMode === "add" || dialogMode === "update") && (
             <Button
               onClick={() => {
+                if (!selectedUser.username || !selectedUser.email) {
+                  alert("Please fill all fields");
+                  return;
+                }
                 if (dialogMode === "add") {
                   axios
-                    .post("http://localhost:8080/user", selectedUser, {
+                    .post("http://localhost:8080/user/register", selectedUser, {
                       headers: { Authorization: `Bearer ${token}` },
                     })
                     .then(() => {
-                      fetchUsers();
+                      alert("User added successfully");
                       setUserDialogOpen(false);
+                      fetchUsers();
+                    })
+                    .catch((err) => {
+                      alert("Failed to add user");
+                      console.error(err);
                     });
                 } else if (dialogMode === "update") {
                   axios
@@ -172,8 +377,13 @@ const AdminDashboard = () => {
                       }
                     )
                     .then(() => {
-                      fetchUsers();
+                      alert("User updated successfully");
                       setUserDialogOpen(false);
+                      fetchUsers();
+                    })
+                    .catch((err) => {
+                      alert("Failed to update user");
+                      console.error(err);
                     });
                 }
               }}
@@ -183,185 +393,189 @@ const AdminDashboard = () => {
           )}
         </DialogActions>
       </Dialog>
-      ;{/* Admin Task Summary */}
-      <Typography variant="h4" gutterBottom>
-        Admin Dashboard
-      </Typography>
-      <Paper sx={{ p: 2, mb: 4 }}>
-        <Typography variant="h6" gutterBottom>
-          Admin Details
-        </Typography>
 
-        {admin ? (
-          <>
-            <Typography variant="body1">
-              <strong>Username:</strong> {admin.username}
-            </Typography>
-            <Typography variant="body1">
-              <strong>Email:</strong> {admin.email}
-            </Typography>
-            <Typography variant="body1" gutterBottom>
-              <strong>Role:</strong> {admin.role || "Admin"}
-            </Typography>
-
-            {/* <Typography variant="h6" sx={{ mt: 2 }}>
-              Admin Tasks
-            </Typography> */}
-            <ul>
-              {/* <li>Manage users (Update/Delete)</li> */}
-              {/* <li>Manage products (Update/Delete)</li> */}
-              {/* <li>Monitor purchase activity</li> */}
-              {/* <li>Maintain system roles and security</li> */}
-            </ul>
-          </>
-        ) : (
-          <Typography>Loading admin details...</Typography>
-        )}
-      </Paper>
-      <TextField
-        label="Search Users"
-        variant="outlined"
+      {/* PRODUCT DIALOG */}
+      <Dialog
+        open={isProductDialogOpen}
+        onClose={() => setProductDialogOpen(false)}
         fullWidth
-        margin="normal"
-        value={searchUser}
-        onChange={(e) => setSearchUser(e.target.value)}
-      />
-      <Button
-        variant="contained"
-        color="primary"
-        onClick={() => {
-          setDialogMode("add");
-          setSelectedUser(null);
-          setUserDialogOpen(true);
-        }}
-        sx={{ mb: 2 }}
       >
-        Add User
-      </Button>
-      {/* User Management Section */}
-      <Typography variant="h5" gutterBottom>
-        Users
-      </Typography>
-      <TableContainer component={Paper} sx={{ mb: 4 }}>
-        <Table>
-          <TableHead>
-            <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
-              <TableCell>ID</TableCell>
-              <TableCell>Username</TableCell>
-              <TableCell>Email</TableCell>
-              <TableCell>Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {users.map((user) => (
-              <TableRow key={user.id}>
-                <TableCell>{user.id}</TableCell>
-                <TableCell>{user.username}</TableCell>
-                <TableCell>{user.email}</TableCell>
-                <TableCell>
-                  <Button
-                    variant="outlined"
-                    color="info"
-                    sx={{ mr: 1 }}
-                    onClick={() => {
-                      setDialogMode("view");
-                      setSelectedUser(user);
-                      setUserDialogOpen(true);
-                    }}
-                  >
-                    View
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    color="primary"
-                    sx={{ mr: 1 }}
-                    onClick={() => {
-                      setDialogMode("update");
-                      setSelectedUser(user);
-                      setUserDialogOpen(true);
-                    }}
-                  >
-                    Update
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    color="error"
-                    onClick={() => handleDeleteUser(user.id)}
-                  >
-                    Delete
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-            {users.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={4} align="center">
-                  No users found.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
-      <TextField
-        label="Search Products"
-        variant="outlined"
-        fullWidth
-        margin="normal"
-        value={searchProduct}
-        onChange={(e) => setSearchProduct(e.target.value)}
-      />
-      {/* Product Management Section */}
-      <Typography variant="h5" gutterBottom>
-        Products
-      </Typography>
-      <TableContainer component={Paper} sx={{ mb: 4 }}>
-        <Table>
-          <TableHead>
-            <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
-              <TableCell>ID</TableCell>
-              <TableCell>Name</TableCell>
-              <TableCell>Price</TableCell>
-              <TableCell>Description</TableCell>
-              <TableCell>Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {products.map((product) => (
-              <TableRow key={product.id}>
-                <TableCell>{product.id}</TableCell>
-                <TableCell>{product.name}</TableCell>
-                <TableCell>₹{product.price}</TableCell>
-                <TableCell>{product.description}</TableCell>
-                <TableCell>
-                  <Button
-                    variant="outlined"
-                    color="primary"
-                    sx={{ mr: 1, mb: 1 }}
-                    onClick={() => alert(`Update logic for ${product.name}`)}
-                  >
-                    Update
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    color="error"
-                    onClick={() => handleDeleteProduct(product.id)}
-                  >
-                    Delete
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-            {products.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={5} align="center">
-                  No products found.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
+        <DialogTitle>
+          {dialogMode === "add"
+            ? "Add Product"
+            : dialogMode === "update"
+            ? "Update Product"
+            : "Product Details"}
+        </DialogTitle>
+        <DialogContent>
+          <TextField
+            margin="dense"
+            label="Name"
+            fullWidth
+            value={selectedProduct?.name || ""}
+            disabled={dialogMode === "view"}
+            onChange={(e) =>
+              setSelectedProduct({ ...selectedProduct, name: e.target.value })
+            }
+          />
+          <TextField
+            margin="dense"
+            label="Price"
+            type="number"
+            fullWidth
+            value={selectedProduct?.price || ""}
+            disabled={dialogMode === "view"}
+            onChange={(e) =>
+              setSelectedProduct({ ...selectedProduct, price: e.target.value })
+            }
+          />
+          <TextField
+            margin="dense"
+            label="Description"
+            fullWidth
+            multiline
+            rows={3}
+            value={selectedProduct?.description || ""}
+            disabled={dialogMode === "view"}
+            onChange={(e) =>
+              setSelectedProduct({
+                ...selectedProduct,
+                description: e.target.value,
+              })
+            }
+          />
+          <TextField
+            margin="dense"
+            label="Quantity"
+            type="number"
+            fullWidth
+            value={selectedProduct?.quantityInStock || ""}
+            disabled={dialogMode === "view"}
+            onChange={(e) =>
+              setSelectedProduct({
+                ...selectedProduct,
+                quantityInStock: e.target.value,
+              })
+            }
+          />
+          <TextField
+            margin="dense"
+            label="Brand"
+            fullWidth
+            value={selectedProduct?.brand || ""}
+            disabled={dialogMode === "view"}
+            onChange={(e) =>
+              setSelectedProduct({ ...selectedProduct, brand: e.target.value })
+            }
+          />
+
+          <FormControl margin="dense" fullWidth>
+            <InputLabel>Category</InputLabel>
+            <Select
+              value={selectedProduct?.categoryId || ""}
+              onChange={(e) =>
+                setSelectedProduct({
+                  ...selectedProduct,
+                  categoryId: e.target.value, // this will be the category ID
+                })
+              }
+              disabled={dialogMode === "view"}
+            >
+              {categories.map((cat) => (
+                <MenuItem key={cat.id} value={cat.id}>
+                  {cat.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <TextField
+            margin="dense"
+            label="SKU"
+            fullWidth
+            value={selectedProduct?.sku || ""}
+            disabled={dialogMode === "view"}
+            onChange={(e) =>
+              setSelectedProduct({ ...selectedProduct, sku: e.target.value })
+            }
+          />
+          <TextField
+            margin="dense"
+            label="MRP"
+            fullWidth
+            value={selectedProduct?.mrp || ""}
+            disabled={dialogMode === "view"}
+            onChange={(e) =>
+              setSelectedProduct({ ...selectedProduct, mrp: e.target.value })
+            }
+          />
+          <TextField
+            margin="dense"
+            label="Active"
+            fullWidth
+            value={selectedProduct?.isActive || ""}
+            disabled={dialogMode === "view"}
+            onChange={(e) =>
+              setSelectedProduct({
+                ...selectedProduct,
+                isActive: e.target.value,
+              })
+            }
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setProductDialogOpen(false)}>Cancel</Button>
+          {(dialogMode === "add" || dialogMode === "update") && (
+            <Button
+              onClick={() => {
+                if (!selectedProduct.name || !selectedProduct.price) {
+                  alert("Please fill all required fields");
+                  return;
+                }
+                if (dialogMode === "add") {
+                  axios
+                    .post(
+                      "http://localhost:8080/products/create",
+                      selectedProduct,
+                      {
+                        headers: { Authorization: `Bearer ${token}` },
+                      }
+                    )
+                    .then(() => {
+                      alert("Product added successfully");
+                      setProductDialogOpen(false);
+                      fetchProducts();
+                    })
+                    .catch((err) => {
+                      alert(err.response.data.error);
+                      console.error(err);
+                    });
+                } else if (dialogMode === "update") {
+                  axios
+                    .patch(
+                      `http://localhost:8080/products/${selectedProduct.id}`,
+                      selectedProduct,
+                      {
+                        headers: { Authorization: `Bearer ${token}` },
+                      }
+                    )
+                    .then(() => {
+                      alert("Product updated successfully");
+                      setProductDialogOpen(false);
+                      fetchProducts();
+                    })
+                    .catch((err) => {
+                      alert("Failed to update product");
+                      console.error(err);
+                    });
+                }
+              }}
+            >
+              {dialogMode === "add" ? "Add" : "Update"}
+            </Button>
+          )}
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };

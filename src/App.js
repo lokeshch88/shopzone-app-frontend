@@ -11,6 +11,10 @@ import ProductPage from "./components/ProductPage";
 import PaymentPage from "./components/paymentPage";
 import PaymentResultPage from "./components/PaymentResultPage";
 import OrdersPage from "./components/OrderPage";
+import UserManagement from "./components/UserManagement";
+import ProductManagement from "./components/ProductManagement";
+import CategoryManagement from "./components/CategoryManagement";
+import OrderManagement from "./components/OrderManagent";
 
 function App() {
   return (
@@ -29,6 +33,10 @@ function App() {
           <Route path="/proceed-payment" element={<PaymentPage />} />
           <Route path="/payment-result" element={<PaymentResultPage />} />
           <Route path="/orders" element={<OrdersPage />} />
+          <Route path="/admin/users" element={<UserManagement />} />
+          <Route path="/admin/products" element={<ProductManagement />} />
+          <Route path="/admin/categories" element={<CategoryManagement />} />
+          <Route path="/admin/orders" element={<OrderManagement />} />
         </Routes>
       </div>
     </Router>

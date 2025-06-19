@@ -1,66 +1,31 @@
+// AdminDashboard.jsx
 import React, { useEffect, useState } from "react";
+import { Container, Typography, Paper, Button, Grid, Box } from "@mui/material";
 import {
-  Container,
-  Typography,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Button,
-  TextField,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  MenuItem,
-  Select,
-  FormControl,
-  InputLabel,
-} from "@mui/material";
-import axios from "axios";
+  People,
+  Inventory,
+  Category,
+  ShoppingCart,
+  Dashboard,
+} from "@mui/icons-material";
+import { useNavigate } from "react-router-dom";
+import axios from "../utils/AxiosInstance";
 
 const AdminDashboard = () => {
-  const [users, setUsers] = useState([]);
-  const [products, setProducts] = useState([]);
   const [admin, setAdmin] = useState(null);
-
-  const [searchUser, setSearchUser] = useState("");
-  const [searchProduct, setSearchProduct] = useState("");
-
-  const [selectedUser, setSelectedUser] = useState(null);
-  const [selectedProduct, setSelectedProduct] = useState(null);
-
-  const [isUserDialogOpen, setUserDialogOpen] = useState(false);
-  const [isProductDialogOpen, setProductDialogOpen] = useState(false);
-  const [dialogMode, setDialogMode] = useState("view"); // "add", "update", "view"
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    totalProducts: 0,
+    totalOrders: 0,
+    totalCategories: 0,
+  });
 
   const token = localStorage.getItem("authToken");
-
-  const [categories, setCategories] = useState([]);
-
-  useEffect(() => {
-    if (isProductDialogOpen) {
-      axios
-        .get("http://localhost:8080/category/get-all", {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        .then((response) => {
-          setCategories(response.data); // assuming response.data is an array
-          console.log(response.data);
-        })
-        .catch((err) => {
-          console.error("Failed to fetch categories", err);
-        });
-    }
-  }, [isProductDialogOpen]);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    fetchUsers();
-    fetchProducts();
-    fetchAdminDetails();
+    //fetchAdminDetails();
+    fetchStats();
   }, []);
 
   const fetchAdminDetails = () => {
@@ -72,510 +37,221 @@ const AdminDashboard = () => {
       .catch((err) => console.error("Failed to load admin info:", err));
   };
 
-  const fetchUsers = () => {
-    axios
-      .get("http://localhost:8080/user/all", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((res) => setUsers(res.data))
-      .catch((err) => console.error("User fetch error:", err));
-  };
+  const fetchStats = async () => {
+    try {
+      const [usersRes, productsRes, categoriesRes, totalOrdersRes] =
+        await Promise.all([
+          axios.get("http://localhost:8080/user/all", {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          axios.get("http://localhost:8080/products/all", {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          axios.get("http://localhost:8080/category/get-all", {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          axios.get("http://localhost:8080/orders/all", {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+        ]);
 
-  const fetchProducts = () => {
-    axios
-      .get("http://localhost:8080/products/all", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((res) => setProducts(res.data))
-      .catch((err) => console.error("Product fetch error:", err));
-  };
-
-  const handleDeleteUser = (id) => {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this user?"
-    );
-    if (confirmed) {
-      axios
-        .delete(`http://localhost:8080/user/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        .then(() => {
-          alert("User deleted");
-          fetchUsers();
-        })
-        .catch((err) => {
-          alert("Failed to delete user");
-          console.error(err);
-        });
+      setStats({
+        totalUsers: usersRes.data.length,
+        totalProducts: productsRes.data.length,
+        totalCategories: categoriesRes.data.length,
+        totalOrders: totalOrdersRes.data.length,
+      });
+    } catch (err) {
+      console.error("Failed to fetch stats:", err);
     }
   };
 
-  const handleDeleteProduct = (id) => {
-    axios
-      .delete(`http://localhost:8080/products/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then(() => {
-        alert("Product deleted");
-        fetchProducts();
-      })
-      .catch((err) => {
-        alert("Failed to delete product");
-        console.error(err);
-      });
-  };
-
-  const filteredUsers = users.filter(
-    (user) =>
-      user.username.toLowerCase().includes(searchUser.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchUser.toLowerCase())
-  );
-
-  const filteredProducts = products.filter((product) =>
-    product.name.toLowerCase().includes(searchProduct.toLowerCase())
-  );
+  const navigationCards = [
+    {
+      title: "User Management",
+      description: "Manage users, view profiles, and handle user operations",
+      icon: <People sx={{ fontSize: 40 }} />,
+      color: "#1976d2",
+      route: "users",
+      count: stats.totalUsers,
+    },
+    {
+      title: "Product Management",
+      description: "Add, edit, and manage product inventory",
+      icon: <Inventory sx={{ fontSize: 40 }} />,
+      color: "#388e3c",
+      route: "products",
+      count: stats.totalProducts,
+    },
+    {
+      title: "Category Management",
+      description: "Organize products with categories",
+      icon: <Category sx={{ fontSize: 40 }} />,
+      color: "#f57c00",
+      route: "categories",
+      count: stats.totalCategories,
+    },
+    {
+      title: "Order Management",
+      description: "Track and manage customer orders",
+      icon: <ShoppingCart sx={{ fontSize: 40 }} />,
+      color: "#7b1fa2",
+      route: "orders",
+      count: stats.totalOrders,
+    },
+  ];
 
   return (
-    <Container className="admin-container">
-      <Typography variant="h4" gutterBottom>
-        Admin Dashboard
-      </Typography>
-      <Paper sx={{ p: 2, mb: 4 }}>
-        <Typography variant="h6" gutterBottom>
-          Admin Details
+    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      <Box sx={{ mb: 4 }}>
+        <Typography
+          variant="h4"
+          gutterBottom
+          sx={{ display: "flex", alignItems: "center" }}
+        >
+          <Dashboard sx={{ mr: 2 }} />
+          Admin Dashboard
+        </Typography>
+      </Box>
+
+      {/* Admin Info */}
+      <Paper sx={{ p: 3, mb: 4 }}>
+        <Typography variant="h6" gutterBottom color="primary">
+          Admin Information
         </Typography>
         {admin ? (
-          <>
-            <Typography>
-              <strong>Username:</strong> {admin.username}
-            </Typography>
-            <Typography>
-              <strong>Email:</strong> {admin.email}
-            </Typography>
-            <Typography gutterBottom>
-              <strong>Role:</strong> {admin.role || "Admin"}
-            </Typography>
-          </>
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={4}>
+              <Typography>
+                <strong>Username:</strong> {admin.username}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Typography>
+                <strong>Email:</strong> {admin.email}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Typography>
+                <strong>Role:</strong> {admin.role || "Admin"}
+              </Typography>
+            </Grid>
+          </Grid>
         ) : (
           <Typography>Loading admin details...</Typography>
         )}
       </Paper>
 
-      {/* USER MANAGEMENT */}
-      <Typography variant="h5">Users</Typography>
-      <TextField
-        fullWidth
-        label="Search Users"
-        value={searchUser}
-        onChange={(e) => setSearchUser(e.target.value)}
-        sx={{ my: 2 }}
-      />
-      <Button
-        variant="contained"
-        color="primary"
-        onClick={() => {
-          setDialogMode("add");
-          setSelectedUser({ username: "", email: "" });
-          setUserDialogOpen(true);
-        }}
-        sx={{ mb: 2 }}
-      >
-        Add User
-      </Button>
-      <TableContainer component={Paper} sx={{ mb: 4 }}>
-        <Table>
-          <TableHead>
-            <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
-              <TableCell>ID</TableCell>
-              <TableCell>Username</TableCell>
-              <TableCell>Email</TableCell>
-              <TableCell>Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {filteredUsers.map((user) => (
-              <TableRow key={user.id}>
-                <TableCell>{user.id}</TableCell>
-                <TableCell>{user.username}</TableCell>
-                <TableCell>{user.email}</TableCell>
-                <TableCell>
-                  <Button
-                    color="info"
-                    onClick={() => {
-                      setDialogMode("view");
-                      setSelectedUser(user);
-                      setUserDialogOpen(true);
-                    }}
-                    sx={{ mr: 1 }}
-                  >
-                    View
-                  </Button>
-                  <Button
-                    color="primary"
-                    onClick={() => {
-                      setDialogMode("update");
-                      setSelectedUser(user);
-                      setUserDialogOpen(true);
-                    }}
-                    sx={{ mr: 1 }}
-                  >
-                    Update
-                  </Button>
-                  <Button
-                    color="error"
-                    onClick={() => handleDeleteUser(user.id)}
-                  >
-                    Delete
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+      {/* Navigation Cards */}
+      <Typography variant="h5" gutterBottom sx={{ mb: 3 }}>
+        Management Sections
+      </Typography>
 
-      {/* PRODUCT MANAGEMENT */}
-      <Typography variant="h5">Products</Typography>
-      <TextField
-        fullWidth
-        label="Search Products"
-        value={searchProduct}
-        onChange={(e) => setSearchProduct(e.target.value)}
-        sx={{ my: 2 }}
-      />
-      <Button
-        variant="contained"
-        color="primary"
-        onClick={() => {
-          setDialogMode("add");
-          setSelectedProduct({ name: "", price: "", description: "" });
-          setProductDialogOpen(true);
-        }}
-        sx={{ mb: 2 }}
-      >
-        Add Product
-      </Button>
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
-              <TableCell>ID</TableCell>
-              <TableCell>Name</TableCell>
-              <TableCell>Price</TableCell>
-              <TableCell>Description</TableCell>
-              <TableCell>Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {filteredProducts.map((product) => (
-              <TableRow key={product.id}>
-                <TableCell>{product.id}</TableCell>
-                <TableCell>{product.name}</TableCell>
-                <TableCell>₹{product.price}</TableCell>
-                <TableCell>{product.description}</TableCell>
-                <TableCell>
-                  <Button
-                    color="info"
-                    onClick={() => {
-                      setDialogMode("view");
-                      setSelectedProduct(product);
-                      setProductDialogOpen(true);
-                    }}
-                    sx={{ mr: 1 }}
-                  >
-                    View
-                  </Button>
-                  <Button
-                    color="primary"
-                    onClick={() => {
-                      setDialogMode("update");
-                      setSelectedProduct(product);
-                      setProductDialogOpen(true);
-                    }}
-                    sx={{ mr: 1 }}
-                  >
-                    Update
-                  </Button>
-                  <Button
-                    color="error"
-                    onClick={() => handleDeleteProduct(product.id)}
-                  >
-                    Delete
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-
-      {/* USER DIALOG */}
-      <Dialog
-        open={isUserDialogOpen}
-        onClose={() => setUserDialogOpen(false)}
-        fullWidth
-      >
-        <DialogTitle>
-          {dialogMode === "add"
-            ? "Add User"
-            : dialogMode === "update"
-            ? "Update User"
-            : "User Details"}
-        </DialogTitle>
-        <DialogContent>
-          <TextField
-            margin="dense"
-            label="Username"
-            fullWidth
-            value={selectedUser?.username || ""}
-            disabled={dialogMode === "view"}
-            onChange={(e) =>
-              setSelectedUser({ ...selectedUser, username: e.target.value })
-            }
-          />
-          <TextField
-            margin="dense"
-            label="Email"
-            fullWidth
-            value={selectedUser?.email || ""}
-            disabled={dialogMode === "view"}
-            onChange={(e) =>
-              setSelectedUser({ ...selectedUser, email: e.target.value })
-            }
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setUserDialogOpen(false)}>Cancel</Button>
-          {(dialogMode === "add" || dialogMode === "update") && (
-            <Button
-              onClick={() => {
-                if (!selectedUser.username || !selectedUser.email) {
-                  alert("Please fill all fields");
-                  return;
-                }
-                if (dialogMode === "add") {
-                  axios
-                    .post("http://localhost:8080/user/register", selectedUser, {
-                      headers: { Authorization: `Bearer ${token}` },
-                    })
-                    .then(() => {
-                      alert("User added successfully");
-                      setUserDialogOpen(false);
-                      fetchUsers();
-                    })
-                    .catch((err) => {
-                      alert("Failed to add user");
-                      console.error(err);
-                    });
-                } else if (dialogMode === "update") {
-                  axios
-                    .put(
-                      `http://localhost:8080/user/${selectedUser.id}`,
-                      selectedUser,
-                      {
-                        headers: { Authorization: `Bearer ${token}` },
-                      }
-                    )
-                    .then(() => {
-                      alert("User updated successfully");
-                      setUserDialogOpen(false);
-                      fetchUsers();
-                    })
-                    .catch((err) => {
-                      alert("Failed to update user");
-                      console.error(err);
-                    });
-                }
+      <Grid container spacing={3}>
+        {navigationCards.map((card) => (
+          <Grid item xs={12} sm={6} md={3} key={card.route}>
+            <Paper
+              sx={{
+                p: 3,
+                cursor: "pointer",
+                transition: "all 0.3s ease",
+                display: "flex",
+                flexDirection: "column",
+                height: 300,
+                border: `2px solid ${card.color}20`,
+                "&:hover": {
+                  transform: "translateY(-4px)",
+                  boxShadow: 4,
+                },
               }}
+              onClick={() => navigate(`/admin/${card.route}`)}
             >
-              {dialogMode === "add" ? "Add" : "Update"}
-            </Button>
-          )}
-        </DialogActions>
-      </Dialog>
+              <Box sx={{ flexGrow: 1, textAlign: "center", mb: 2 }}>
+                <Box sx={{ color: card.color, mb: 1 }}>{card.icon}</Box>
+                <Typography variant="h6" gutterBottom>
+                  {card.title}
+                </Typography>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ mb: 2 }}
+                >
+                  {card.description}
+                </Typography>
+                <Typography
+                  variant="h4"
+                  sx={{ color: card.color, fontWeight: "bold" }}
+                >
+                  {card.count}
+                </Typography>
+              </Box>
 
-      {/* PRODUCT DIALOG */}
-      <Dialog
-        open={isProductDialogOpen}
-        onClose={() => setProductDialogOpen(false)}
-        fullWidth
-      >
-        <DialogTitle>
-          {dialogMode === "add"
-            ? "Add Product"
-            : dialogMode === "update"
-            ? "Update Product"
-            : "Product Details"}
-        </DialogTitle>
-        <DialogContent>
-          <TextField
-            margin="dense"
-            label="Name"
-            fullWidth
-            value={selectedProduct?.name || ""}
-            disabled={dialogMode === "view"}
-            onChange={(e) =>
-              setSelectedProduct({ ...selectedProduct, name: e.target.value })
-            }
-          />
-          <TextField
-            margin="dense"
-            label="Price"
-            type="number"
-            fullWidth
-            value={selectedProduct?.price || ""}
-            disabled={dialogMode === "view"}
-            onChange={(e) =>
-              setSelectedProduct({ ...selectedProduct, price: e.target.value })
-            }
-          />
-          <TextField
-            margin="dense"
-            label="Description"
-            fullWidth
-            multiline
-            rows={3}
-            value={selectedProduct?.description || ""}
-            disabled={dialogMode === "view"}
-            onChange={(e) =>
-              setSelectedProduct({
-                ...selectedProduct,
-                description: e.target.value,
-              })
-            }
-          />
-          <TextField
-            margin="dense"
-            label="Quantity"
-            type="number"
-            fullWidth
-            value={selectedProduct?.quantityInStock || ""}
-            disabled={dialogMode === "view"}
-            onChange={(e) =>
-              setSelectedProduct({
-                ...selectedProduct,
-                quantityInStock: e.target.value,
-              })
-            }
-          />
-          <TextField
-            margin="dense"
-            label="Brand"
-            fullWidth
-            value={selectedProduct?.brand || ""}
-            disabled={dialogMode === "view"}
-            onChange={(e) =>
-              setSelectedProduct({ ...selectedProduct, brand: e.target.value })
-            }
-          />
+              <Button
+                fullWidth
+                variant="contained"
+                sx={{
+                  backgroundColor: card.color,
+                  "&:hover": {
+                    backgroundColor: card.color,
+                    filter: "brightness(0.9)",
+                  },
+                }}
+              >
+                Manage
+              </Button>
+            </Paper>
+          </Grid>
+        ))}
+      </Grid>
 
-          <FormControl margin="dense" fullWidth>
-            <InputLabel>Category</InputLabel>
-            <Select
-              value={selectedProduct?.categoryId || ""}
-              onChange={(e) =>
-                setSelectedProduct({
-                  ...selectedProduct,
-                  categoryId: e.target.value, // this will be the category ID
-                })
-              }
-              disabled={dialogMode === "view"}
-            >
-              {categories.map((cat) => (
-                <MenuItem key={cat.id} value={cat.id}>
-                  {cat.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-          <TextField
-            margin="dense"
-            label="SKU"
-            fullWidth
-            value={selectedProduct?.sku || ""}
-            disabled={dialogMode === "view"}
-            onChange={(e) =>
-              setSelectedProduct({ ...selectedProduct, sku: e.target.value })
-            }
-          />
-          <TextField
-            margin="dense"
-            label="MRP"
-            fullWidth
-            value={selectedProduct?.mrp || ""}
-            disabled={dialogMode === "view"}
-            onChange={(e) =>
-              setSelectedProduct({ ...selectedProduct, mrp: e.target.value })
-            }
-          />
-          <TextField
-            margin="dense"
-            label="Active"
-            fullWidth
-            value={selectedProduct?.isActive || ""}
-            disabled={dialogMode === "view"}
-            onChange={(e) =>
-              setSelectedProduct({
-                ...selectedProduct,
-                isActive: e.target.value,
-              })
-            }
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setProductDialogOpen(false)}>Cancel</Button>
-          {(dialogMode === "add" || dialogMode === "update") && (
+      {/* Quick Actions */}
+      <Paper sx={{ p: 3, mt: 4 }}>
+        <Typography variant="h6" gutterBottom>
+          Quick Actions
+        </Typography>
+        <Grid container spacing={2}>
+          <Grid item xs={12} sm={6} md={3}>
             <Button
-              onClick={() => {
-                if (!selectedProduct.name || !selectedProduct.price) {
-                  alert("Please fill all required fields");
-                  return;
-                }
-                if (dialogMode === "add") {
-                  axios
-                    .post(
-                      "http://localhost:8080/products/create",
-                      selectedProduct,
-                      {
-                        headers: { Authorization: `Bearer ${token}` },
-                      }
-                    )
-                    .then(() => {
-                      alert("Product added successfully");
-                      setProductDialogOpen(false);
-                      fetchProducts();
-                    })
-                    .catch((err) => {
-                      alert(err.response.data.error);
-                      console.error(err);
-                    });
-                } else if (dialogMode === "update") {
-                  axios
-                    .patch(
-                      `http://localhost:8080/products/${selectedProduct.id}`,
-                      selectedProduct,
-                      {
-                        headers: { Authorization: `Bearer ${token}` },
-                      }
-                    )
-                    .then(() => {
-                      alert("Product updated successfully");
-                      setProductDialogOpen(false);
-                      fetchProducts();
-                    })
-                    .catch((err) => {
-                      alert("Failed to update product");
-                      console.error(err);
-                    });
-                }
-              }}
+              fullWidth
+              variant="outlined"
+              onClick={() => navigate("/admin/users")}
+              startIcon={<People />}
             >
-              {dialogMode === "add" ? "Add" : "Update"}
+              Add New User
             </Button>
-          )}
-        </DialogActions>
-      </Dialog>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Button
+              fullWidth
+              variant="outlined"
+              onClick={() => navigate("/admin/products")}
+              startIcon={<Inventory />}
+            >
+              Add New Product
+            </Button>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Button
+              fullWidth
+              variant="outlined"
+              onClick={() => navigate("/admin/categories")}
+              startIcon={<Category />}
+            >
+              Add Category
+            </Button>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Button
+              fullWidth
+              variant="outlined"
+              onClick={() => navigate("/admin/orders")}
+              startIcon={<ShoppingCart />}
+            >
+              View Orders
+            </Button>
+          </Grid>
+        </Grid>
+      </Paper>
     </Container>
   );
 };
