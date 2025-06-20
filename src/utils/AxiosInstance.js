@@ -13,19 +13,24 @@ instance.interceptors.request.use((config) => {
   return config;
 });
 
+let isHandlingSessionTimeout = false;
+
 instance.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (
-      error.response &&
-      (error.response.status === 400 || error.response.status === 401)
-    ) {
-      alert("Session timeout. Please login again.");
+    const status = error?.response?.status;
 
-      // Clear session and redirect
-      localStorage.clear();
-      window.location.href = "/login";
+    if ((status === 400 || status === 401) && !isHandlingSessionTimeout) {
+      isHandlingSessionTimeout = true;
+
+      // Small delay to allow this flag to settle before redirect
+      setTimeout(() => {
+        alert("Session timeout. Please login again.");
+        localStorage.clear();
+        window.location.href = "/login";
+      }, 0);
     }
+
     return Promise.reject(error);
   }
 );

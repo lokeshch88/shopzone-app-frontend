@@ -115,7 +115,7 @@ const AdminDashboard = () => {
       </Box>
 
       {/* Admin Info */}
-      <Paper sx={{ p: 3, mb: 4 }}>
+      {/* <Paper sx={{ p: 3, mb: 4 }}>
         <Typography variant="h6" gutterBottom color="primary">
           Admin Information
         </Typography>
@@ -140,7 +140,7 @@ const AdminDashboard = () => {
         ) : (
           <Typography>Loading admin details...</Typography>
         )}
-      </Paper>
+      </Paper> */}
 
       {/* Navigation Cards */}
       <Typography variant="h5" gutterBottom sx={{ mb: 3 }}>
