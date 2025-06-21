@@ -135,7 +135,11 @@ const HomePage = () => {
                 <Typography variant="h6" gutterBottom>
                   {product.name}
                 </Typography>
-                <Typography color="text.secondary" variant="body2">
+                <Typography
+                  color="text.secondary"
+                  variant="body2"
+                  sx={{ maxWidth: 200 }}
+                >
                   {product.description}
                 </Typography>
                 <Typography variant="subtitle1" color="primary" sx={{ mt: 1 }}>
