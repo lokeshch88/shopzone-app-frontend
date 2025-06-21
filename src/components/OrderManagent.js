@@ -8,6 +8,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TablePagination,
   Paper,
   Button,
   TextField,
@@ -36,6 +37,8 @@ const OrderManagement = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
+  const [page, setPage] = useState(0);
+  const [rowsPerPage] = useState(10);
   const navigate = useNavigate();
   const token = localStorage.getItem("authToken");
 
@@ -54,7 +57,6 @@ const OrderManagement = () => {
       const res = await axios.get("http://localhost:8080/orders/all", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      // Add ID and orderId if missing
       const transformed = res.data.map((o, idx) => ({
         ...o,
         id: o.orderId || `temp-${idx}`,
@@ -68,9 +70,13 @@ const OrderManagement = () => {
   const updateOrderStatus = async (orderId, newStatus) => {
     try {
       await axios.patch(
-        `http://localhost:8080/orders/${orderId}/status?status=${newStatus}`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
+        "http://localhost:8080/orders/",
+        { orderId, status: newStatus, userId: 0 },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
       alert("Status updated");
       fetchOrders();
@@ -89,6 +95,15 @@ const OrderManagement = () => {
     const matchStatus = statusFilter === "all" || o.status === statusFilter;
     return matchText && matchStatus;
   });
+
+  const paginatedOrders = filtered.slice(
+    page * rowsPerPage,
+    page * rowsPerPage + rowsPerPage
+  );
+
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
 
   return (
     <Container sx={{ mt: 4 }}>
@@ -112,7 +127,10 @@ const OrderManagement = () => {
         <TextField
           label="Search Order ID / User ID"
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={(e) => {
+            setSearchTerm(e.target.value);
+            setPage(0); // reset page on search
+          }}
           InputProps={{ startAdornment: <Search sx={{ mr: 1 }} /> }}
           sx={{ flexGrow: 1, minWidth: 200 }}
         />
@@ -120,7 +138,10 @@ const OrderManagement = () => {
           <InputLabel>Status Filter</InputLabel>
           <Select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              setPage(0); // reset page on filter
+            }}
             label="Status Filter"
           >
             <MenuItem value="all">All</MenuItem>
@@ -158,7 +179,7 @@ const OrderManagement = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {filtered.map((o) => (
+            {paginatedOrders.map((o) => (
               <TableRow key={o.id} hover>
                 <TableCell>{o.orderId || o.id}</TableCell>
                 <TableCell>{o.userId}</TableCell>
@@ -189,7 +210,7 @@ const OrderManagement = () => {
                 </TableCell>
               </TableRow>
             ))}
-            {filtered.length === 0 && (
+            {paginatedOrders.length === 0 && (
               <TableRow>
                 <TableCell colSpan={6} align="center">
                   No orders found
@@ -198,6 +219,15 @@ const OrderManagement = () => {
             )}
           </TableBody>
         </Table>
+
+        <TablePagination
+          component="div"
+          count={filtered.length}
+          page={page}
+          onPageChange={handleChangePage}
+          rowsPerPage={rowsPerPage}
+          rowsPerPageOptions={[]}
+        />
       </TableContainer>
 
       <Dialog
