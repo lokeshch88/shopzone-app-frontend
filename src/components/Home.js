@@ -31,7 +31,7 @@ const HomePage = () => {
   useEffect(() => {
     axios
       .get("http://localhost:8080/products/all")
-      .then((response) => setProducts(response.data))
+      .then((response) => setProducts(response.data.result))
       .catch((error) => {
         console.error("Error loading products:", error);
         setSnackbar({
