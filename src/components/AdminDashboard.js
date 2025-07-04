@@ -8,6 +8,8 @@ import {
   ShoppingCart,
   Dashboard,
 } from "@mui/icons-material";
+import PaymentsIcon from "@mui/icons-material/Payments";
+import LocalAtmIcon from "@mui/icons-material/LocalAtm";
 import { useNavigate } from "react-router-dom";
 import axios from "../utils/AxiosInstance";
 
@@ -39,27 +41,36 @@ const AdminDashboard = () => {
 
   const fetchStats = async () => {
     try {
-      const [usersRes, productsRes, categoriesRes, totalOrdersRes] =
-        await Promise.all([
-          axios.get("http://localhost:8080/user/all", {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          axios.get("http://localhost:8080/products/all", {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          axios.get("http://localhost:8080/category/get-all", {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          axios.get("http://localhost:8080/orders/all", {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-        ]);
+      const [
+        usersRes,
+        productsRes,
+        categoriesRes,
+        totalOrdersRes,
+        totalCoupons,
+      ] = await Promise.all([
+        axios.get("http://localhost:8080/user/all", {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get("http://localhost:8080/products/all", {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get("http://localhost:8080/category/get-all", {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get("http://localhost:8080/orders/all", {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get("http://localhost:8080/coupons/all", {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ]);
 
       setStats({
         totalUsers: usersRes.data.length,
-        totalProducts: productsRes.data.length,
+        totalProducts: productsRes.data.result.length,
         totalCategories: categoriesRes.data.length,
         totalOrders: totalOrdersRes.data.length,
+        totalCoupons: totalCoupons.data.result.length,
       });
     } catch (err) {
       console.error("Failed to fetch stats:", err);
@@ -97,6 +108,22 @@ const AdminDashboard = () => {
       icon: <ShoppingCart sx={{ fontSize: 40 }} />,
       color: "#7b1fa2",
       route: "orders",
+      count: stats.totalOrders,
+    },
+    {
+      title: "Coupon Management",
+      description: "Track and manage coupons",
+      icon: <PaymentsIcon sx={{ fontSize: 40 }} />,
+      color: "#1976d2",
+      route: "coupons",
+      count: stats.totalCoupons,
+    },
+    {
+      title: "Gift Cards Management",
+      description: "Track and manage gift cards",
+      icon: <LocalAtmIcon sx={{ fontSize: 40 }} />,
+      color: "#388e3c",
+      route: "gift-card",
       count: stats.totalOrders,
     },
   ];

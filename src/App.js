@@ -15,7 +15,8 @@ import UserManagement from "./components/UserManagement";
 import ProductManagement from "./components/ProductManagement";
 import CategoryManagement from "./components/CategoryManagement";
 import OrderManagement from "./components/OrderManagent";
-
+import CouponManagement from "./components/CouponManagement";
+import HomeCheck from "./components/HomeCheck";
 function App() {
   return (
     <Router>
@@ -23,6 +24,7 @@ function App() {
       <div style={{ padding: 20 }}>
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/check" element={<HomeCheck />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
           <Route path="/home" element={<HomePage />} />
@@ -37,6 +39,7 @@ function App() {
           <Route path="/admin/products" element={<ProductManagement />} />
           <Route path="/admin/categories" element={<CategoryManagement />} />
           <Route path="/admin/orders" element={<OrderManagement />} />
+          <Route path="/admin/coupons" element={<CouponManagement />} />
         </Routes>
       </div>
     </Router>

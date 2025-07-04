@@ -48,7 +48,7 @@ const ProductManagement = () => {
       .get("http://localhost:8080/products/all", {
         headers: { Authorization: `Bearer ${token}` },
       })
-      .then((res) => setProducts(res.data))
+      .then((res) => setProducts(res.data.result))
       .catch((err) => console.error("Product fetch error:", err));
   };
 
