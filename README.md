@@ -1,1 +1,1 @@
-🏨 ShopZone App – Spring Boot Frontend
+# 🏨 ShopZone App – Spring Boot Backend
