@@ -43,6 +43,14 @@ const HomePage = () => {
   const theme = useTheme();
 
   useEffect(() => {
+    navigator.geolocation.getCurrentPosition((pos) => {
+      console.log("Latitude:", pos.coords.latitude);
+      console.log("Longitude:", pos.coords.longitude);
+      console.log("Accuracy (meters):", pos.coords.accuracy);
+    });
+  });
+
+  useEffect(() => {
     axios
       .get("http://localhost:8080/products/all")
       .then((response) => {
