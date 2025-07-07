@@ -104,7 +104,7 @@ const CartPage = () => {
           // });
 
           // 👇 Pass orderId and amount to payment page via state
-          navigate("/proceed-payment", {
+          navigate("/order/checkout", {
             state: {
               orderId: orderId,
               amount: totalAmount,

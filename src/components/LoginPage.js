@@ -33,9 +33,16 @@ const LoginPage = () => {
         const email = response.data.email;
         const userId = response.data.userId;
         const userRole = response.data.userRole;
-
+        const userAddress = response.data.addresses;
         localStorage.setItem("authToken", token);
         // localStorage.setItem("userInfo", JSON.stringify(userInfo));
+        // After successful login:
+        localStorage.setItem(
+          "userAddresses",
+          JSON.stringify(response.data.addresses)
+        );
+        localStorage.setItem("selectedAddress", "Select Address");
+
         localStorage.setItem("username", username);
         localStorage.setItem("firstName", firstName);
         localStorage.setItem("lastName", lastName);

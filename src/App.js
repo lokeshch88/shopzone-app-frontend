@@ -17,6 +17,7 @@ import CategoryManagement from "./components/CategoryManagement";
 import OrderManagement from "./components/OrderManagent";
 import CouponManagement from "./components/CouponManagement";
 import HomeCheck from "./components/HomeCheck";
+import CheckoutSummaryPage from "./components/CheckoutSummaryPage";
 function App() {
   return (
     <Router>
@@ -40,6 +41,7 @@ function App() {
           <Route path="/admin/categories" element={<CategoryManagement />} />
           <Route path="/admin/orders" element={<OrderManagement />} />
           <Route path="/admin/coupons" element={<CouponManagement />} />
+          <Route path="/order/checkout" element={<CheckoutSummaryPage />} />
         </Routes>
       </div>
     </Router>

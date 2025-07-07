@@ -21,6 +21,8 @@ import {
 import { useNavigate } from "react-router-dom";
 import { Edit, Delete } from "@mui/icons-material";
 
+import { fetchLatLong } from "../utils/AddressUtils";
+
 const ProfilePage = () => {
   const username = localStorage.getItem("username");
   const firstName = localStorage.getItem("firstName");
@@ -34,42 +36,162 @@ const ProfilePage = () => {
 
   const navigate = useNavigate();
 
-  // useEffect(() => {
-  //   fetch("http://localhost:8080/api/addresses")
-  //     .then((res) => res.json())
-  //     .then((data) => setAddresses(data))
-  //     .catch((err) => console.error("Failed to fetch addresses", err));
-  // }, []);
-
   const handleLogout = () => {
     localStorage.clear();
     navigate("/login");
   };
 
+  //address
+  const userId = localStorage.getItem("userId"); // Ensure userId is stored in localStorage
+
+  const [formData, setFormData] = useState({
+    addressLine: "",
+    city: "",
+    state: "",
+    district: "",
+    country: "",
+    pincode: "",
+    latitude: "",
+    longitude: "",
+  });
+  const [editingAddressId, setEditingAddressId] = useState(null);
+  const token = localStorage.getItem("authToken"); // or whatever key you're storing it under
+  useEffect(() => {
+    if (userId && token) {
+      fetch(`http://localhost:8080/address/user/${userId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      })
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error("Network response was not ok");
+          }
+          return res.json();
+        })
+        .then((data) => {
+          if (Array.isArray(data)) {
+            setAddresses(data);
+          } else {
+            console.warn("Unexpected address data format:", data);
+            setAddresses([]);
+          }
+        })
+        .catch((err) => {
+          console.error("Failed to fetch addresses:", err);
+          setAddresses([]); // Optional fallback
+        });
+    }
+  }, [userId]);
+
   const handleOpenDialog = (index = -1) => {
-    setEditingIndex(index);
-    setNewAddress(index >= 0 ? addresses[index].address : "");
+    if (index >= 0) {
+      const addr = addresses[index];
+      setFormData({
+        addressLine: addr.addressLine || "",
+        city: addr.city || "",
+        state: addr.state || "",
+        country: addr.country || "",
+        pincode: addr.pincode || "",
+        latitude: addr.latitude || "",
+        longitude: addr.longitude || "",
+      });
+      setEditingAddressId(addr.id);
+    } else {
+      setFormData({
+        addressLine: "",
+        city: "",
+        state: "",
+        country: "",
+        pincode: "",
+        latitude: "",
+        longitude: "",
+      });
+      setEditingAddressId(null);
+    }
     setOpenDialog(true);
   };
 
-  const handleSaveAddress = () => {
-    const updatedAddresses = [...addresses];
-    if (editingIndex >= 0) {
-      updatedAddresses[editingIndex].address = newAddress;
-      // update address API call here
+  const handleSaveAddress = async () => {
+    // Call geocoding util before saving
+    const coords = await fetchLatLong(formData);
+
+    if (coords) {
+      const payload = {
+        ...formData,
+        userId: parseInt(userId),
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+      };
+
+      const method = editingAddressId ? "PUT" : "POST";
+      const url = editingAddressId
+        ? `http://localhost:8080/address/${editingAddressId}`
+        : `http://localhost:8080/address/save`;
+
+      fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+        body: JSON.stringify(payload),
+      })
+        .then((res) => {
+          if (!res.ok) throw new Error("Failed to save address");
+          return res.json();
+        })
+        .then(() => {
+          // refresh list after save
+          return fetch(`http://localhost:8080/address/user/${userId}`, {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+            },
+          });
+        })
+        .then((res) => res.json())
+        .then((data) => {
+          setAddresses(data);
+          setOpenDialog(false);
+        })
+        .catch((err) => console.error(err));
     } else {
-      updatedAddresses.push({ address: newAddress });
-      // create address API call here
+      alert("Could not find latitude and longitude for the entered address.");
     }
-    setAddresses(updatedAddresses);
-    setOpenDialog(false);
   };
 
   const handleDelete = (index) => {
-    const updatedAddresses = addresses.filter((_, i) => i !== index);
-    setAddresses(updatedAddresses);
-    // delete API call here
+    const token = localStorage.getItem("authToken");
+    const idToDelete = addresses[index].id;
+
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this address?"
+    );
+    if (!confirmDelete) return;
+    fetch(`http://localhost:8080/address/${idToDelete}`, {
+      method: "DELETE", // 👈 This is required
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    })
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error("Failed to delete address");
+        }
+        // Remove the deleted address from state
+        const updated = addresses.filter((_, i) => i !== index);
+        setAddresses(updated);
+      })
+      .catch((err) => console.error("Failed to delete address", err));
   };
+
+  // const handleOpenDialog = (index = -1) => {
+  //   setEditingIndex(index);
+  //   setNewAddress(index >= 0 ? addresses[index].address : "");
+  //   setOpenDialog(true);
+  // };
 
   if (!username || !email) {
     return (
@@ -131,7 +253,8 @@ const ProfilePage = () => {
           <List>
             {addresses.map((addr, idx) => (
               <ListItem
-                key={idx}
+                key={addr.id || idx}
+                alignItems="flex-start"
                 secondaryAction={
                   <>
                     <IconButton onClick={() => handleOpenDialog(idx)}>
@@ -143,7 +266,22 @@ const ProfilePage = () => {
                   </>
                 }
               >
-                <ListItemText primary={addr.address} />
+                <ListItemText
+                  primary={
+                    <>
+                      <Typography variant="body1" fontWeight="bold">
+                        {addr.addressLine}
+                      </Typography>
+                      <Typography variant="body2">
+                        {addr.city}, {addr.district}, {addr.state},{" "}
+                        {addr.country} - {addr.pincode}
+                      </Typography>
+                      {/* <Typography variant="caption">
+                        Lat: {addr.latitude}, Long: {addr.longitude}
+                      </Typography> */}
+                    </>
+                  }
+                />
               </ListItem>
             ))}
           </List>
@@ -158,23 +296,102 @@ const ProfilePage = () => {
       </Card>
 
       {/* Add/Edit Dialog */}
+      {/* Add/Edit Dialog */}
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
         <DialogTitle>
-          {editingIndex >= 0 ? "Edit Address" : "Add Address"}
+          {editingAddressId ? "Edit Address" : "Add New Address"}
         </DialogTitle>
         <DialogContent>
-          <TextField
-            fullWidth
-            label="Address"
-            value={newAddress}
-            onChange={(e) => setNewAddress(e.target.value)}
-            multiline
-            rows={3}
-          />
+          <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Address Line"
+                value={formData.addressLine}
+                onChange={(e) =>
+                  setFormData({ ...formData, addressLine: e.target.value })
+                }
+                margin="normal"
+              />
+            </Grid>
+            <Grid item xs={6}>
+              <TextField
+                fullWidth
+                label="City"
+                value={formData.city}
+                onChange={(e) =>
+                  setFormData({ ...formData, city: e.target.value })
+                }
+                margin="normal"
+              />
+            </Grid>
+            <Grid item xs={6}>
+              <TextField
+                fullWidth
+                label="District"
+                value={formData.district}
+                onChange={(e) =>
+                  setFormData({ ...formData, district: e.target.value })
+                }
+              />
+            </Grid>
+            <Grid item xs={6}>
+              <TextField
+                fullWidth
+                label="State"
+                value={formData.state}
+                onChange={(e) =>
+                  setFormData({ ...formData, state: e.target.value })
+                }
+              />
+            </Grid>
+            <Grid item xs={6}>
+              <TextField
+                fullWidth
+                label="Country"
+                value={formData.country}
+                onChange={(e) =>
+                  setFormData({ ...formData, country: e.target.value })
+                }
+              />
+            </Grid>
+            <Grid item xs={6}>
+              <TextField
+                fullWidth
+                label="Pincode"
+                value={formData.pincode}
+                onChange={(e) =>
+                  setFormData({ ...formData, pincode: e.target.value })
+                }
+              />
+            </Grid>
+            {/* <Grid item xs={6}>
+              <TextField
+                fullWidth
+                label="Latitude"
+                value={formData.latitude}
+                onChange={(e) =>
+                  setFormData({ ...formData, latitude: e.target.value })
+                }
+              />
+            </Grid>
+            <Grid item xs={6}>
+              <TextField
+                fullWidth
+                label="Longitude"
+                value={formData.longitude}
+                onChange={(e) =>
+                  setFormData({ ...formData, longitude: e.target.value })
+                }
+              />
+            </Grid> */}
+          </Grid>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenDialog(false)}>Cancel</Button>
-          <Button onClick={handleSaveAddress}>Save</Button>
+          <Button onClick={handleSaveAddress} variant="contained">
+            Save
+          </Button>
         </DialogActions>
       </Dialog>
     </Container>

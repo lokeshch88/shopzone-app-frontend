@@ -32,72 +32,16 @@ const NavBar = () => {
   const [address, setAddress] = useState("Select Address");
   const [openDialog, setOpenDialog] = useState(false);
   const [tempAddress, setTempAddress] = useState("");
-  const [addressList, setAddressList] = useState([]);
-  const [detectedAddress, setDetectedAddress] = useState(null);
-
-  const isLoggedIn = !!localStorage.getItem("authToken");
 
   useEffect(() => {
     const storedRole = localStorage.getItem("userRole");
+    const storedAddress =
+      localStorage.getItem("userAddress") || "Select Address";
     setRole(storedRole);
-
-    const storedAddresses = localStorage.getItem("userAddresses");
-    let parsed = [];
-    try {
-      parsed = storedAddresses ? JSON.parse(storedAddresses) : [];
-    } catch (e) {
-      console.error("Invalid JSON in userAddresses", e);
-    }
-    setAddressList(parsed);
-
-    if (!parsed.length && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const { latitude, longitude } = position.coords;
-          try {
-            const res = await fetch(
-              `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`
-            );
-            const data = await res.json();
-
-            const tempDetectedAddress = {
-              addressLine: data.display_name || "Detected Address",
-              city: data.address?.city || data.address?.town || "",
-              district: data.address?.county || "",
-              state: data.address?.state || "",
-              country: data.address?.country || "",
-              pincode: data.address?.postcode || "",
-              latitude,
-              longitude,
-            };
-
-            setDetectedAddress(tempDetectedAddress);
-            setTempAddress(formatAddress(tempDetectedAddress));
-          } catch (err) {
-            console.error("Reverse geocoding failed:", err);
-            setDetectedAddress(null);
-          }
-        },
-        (err) => {
-          console.warn("Geolocation denied or unavailable:", err);
-          setDetectedAddress(null);
-        }
-      );
-    }
+    setAddress(storedAddress);
   }, []);
 
-  const formatAddress = (addr) => {
-    return [
-      addr.addressLine,
-      addr.city,
-      addr.district,
-      addr.state,
-      addr.country,
-      addr.pincode ? `Pincode: ${addr.pincode}` : "",
-    ]
-      .filter(Boolean)
-      .join(", ");
-  };
+  const isLoggedIn = !!localStorage.getItem("authToken");
 
   const handleMenuOpen = (e) => setAnchorEl(e.currentTarget);
   const handleMenuClose = () => setAnchorEl(null);
@@ -112,18 +56,14 @@ const NavBar = () => {
   };
 
   const handleAddressClick = () => {
-    setTempAddress(address);
+    setTempAddress(address === "Select Address" ? "" : address);
     setOpenDialog(true);
   };
 
-  const saveAddressToAPI = async (addressObj) => {
-    const response = await fetch("/api/save-address", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(addressObj),
-    });
-
-    if (!response.ok) throw new Error("Failed to save address");
+  const handleAddressSave = () => {
+    setAddress(tempAddress);
+    localStorage.setItem("userAddress", tempAddress);
+    setOpenDialog(false);
   };
 
   const publicNav = [
@@ -142,25 +82,72 @@ const NavBar = () => {
     ...userNav,
     { label: "Admin Dashboard", path: "/admin-dashboard" },
   ];
+
   const navItems = !isLoggedIn
     ? publicNav
     : role === "ADMIN"
     ? adminNav
     : userNav;
 
+  useEffect(() => {
+    const storedRole = localStorage.getItem("userRole");
+    const storedAddress = localStorage.getItem("userAddress");
+
+    setRole(storedRole);
+
+    if (storedAddress && storedAddress !== "Select Address") {
+      setAddress(storedAddress);
+    } else {
+      // Auto-detect location if address is not set
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            const { latitude, longitude } = position.coords;
+
+            try {
+              const res = await fetch(
+                `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`
+              );
+              const data = await res.json();
+              const readableAddress = data.display_name || "Your Location";
+
+              setAddress(readableAddress);
+              localStorage.setItem("userAddress", readableAddress);
+            } catch (err) {
+              console.error("Reverse geocoding failed:", err);
+              setAddress("Location Unavailable");
+            }
+          },
+          (err) => {
+            console.warn("Geolocation denied or unavailable:", err);
+            setAddress("Location Permission Denied");
+          }
+        );
+      } else {
+        setAddress("Geolocation Not Supported");
+      }
+    }
+  }, []);
+
   return (
     <>
       <AppBar
         position="sticky"
-        sx={{ backgroundColor: "#2e7dff", color: "#fff" }}
+        sx={{
+          backgroundColor: "#2e7dff",
+          color: "#ffffff",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+        }}
       >
         <Toolbar
           sx={{
             justifyContent: "space-between",
             flexDirection: isMobile ? "column" : "row",
             alignItems: isMobile ? "flex-start" : "center",
+            py: isMobile ? 1.2 : 0.8,
           }}
         >
+          {/* Left Section: Brand + Location */}
           <Box
             sx={{
               display: "flex",
@@ -174,17 +161,31 @@ const NavBar = () => {
                 fontWeight: "bold",
                 fontFamily: "'Poppins', sans-serif",
                 cursor: "pointer",
+                color: "#fff",
               }}
               onClick={() => navigate("/home")}
             >
               ShopZone
             </Typography>
+
+            {/* Location Badge */}
             <Box
               sx={{
                 display: "flex",
                 alignItems: "center",
                 gap: 0.5,
+                mt: 0.2,
+                px: 1,
+                py: 0.3,
+                backgroundColor: "rgba(255, 255, 255, 0.1)",
+                borderRadius: "20px",
                 cursor: "pointer",
+                color: "#fff",
+                fontSize: "0.8rem",
+                transition: "background 0.2s",
+                "&:hover": {
+                  backgroundColor: "rgba(255,255,255,0.2)",
+                },
               }}
               onClick={handleAddressClick}
             >
@@ -203,6 +204,7 @@ const NavBar = () => {
             </Box>
           </Box>
 
+          {/* Right Section: Nav Items & Avatar */}
           {!isMobile ? (
             <Box>
               {navItems.map((item) => (
@@ -211,7 +213,15 @@ const NavBar = () => {
                   color="inherit"
                   component={Link}
                   to={item.path}
-                  sx={{ textTransform: "none", mx: 1 }}
+                  sx={{
+                    mx: 1,
+                    textTransform: "none",
+                    fontWeight: 500,
+                    fontFamily: "'Poppins', sans-serif",
+                    ":hover": {
+                      backgroundColor: "rgba(255, 255, 255, 0.15)",
+                    },
+                  }}
                 >
                   {item.label}
                 </Button>
@@ -251,6 +261,7 @@ const NavBar = () => {
         </Toolbar>
       </AppBar>
 
+      {/* Profile Dropdown */}
       <Menu
         anchorEl={profileAnchorEl}
         open={Boolean(profileAnchorEl)}
@@ -268,56 +279,40 @@ const NavBar = () => {
         <MenuItem onClick={handleLogout}>Logout</MenuItem>
       </Menu>
 
-      <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
-        <DialogTitle>Set Delivery Address</DialogTitle>
-        <DialogContent>
-          {addressList.length > 0 &&
-            addressList.map((addr, i) => (
-              <Box
-                key={i}
-                onClick={() => {
-                  const formatted = formatAddress(addr);
-                  setAddress(formatted);
-                  setOpenDialog(false);
-                }}
-                sx={{
-                  border: "1px solid #ccc",
-                  p: 1,
-                  mb: 1,
-                  borderRadius: 2,
-                  cursor: "pointer",
-                }}
-              >
-                <Typography variant="body2">{formatAddress(addr)}</Typography>
-              </Box>
-            ))}
+      {/* Address Dialog */}
+      <Dialog
+        open={openDialog}
+        onClose={() => setOpenDialog(false)}
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            p: 2,
+            minWidth: 350,
+            maxWidth: 400,
+          },
+        }}
+      >
+        <DialogTitle
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+            fontWeight: 600,
+            fontSize: "1.2rem",
+          }}
+        >
+          <LocationOnIcon color="primary" />
+          Set Delivery Address
+        </DialogTitle>
 
-          {addressList.length === 0 && detectedAddress && (
-            <Box
-              sx={{ border: "1px dashed #999", p: 2, borderRadius: 2, mb: 2 }}
-            >
-              <Typography variant="body2">
-                {formatAddress(detectedAddress)}
-              </Typography>
-              <Button
-                variant="outlined"
-                onClick={async () => {
-                  try {
-                    await saveAddressToAPI(detectedAddress);
-                    const updated = [...addressList, detectedAddress];
-                    setAddressList(updated);
-                    setAddress(formatAddress(detectedAddress));
-                    setOpenDialog(false);
-                  } catch (err) {
-                    console.error("Failed to save address", err);
-                  }
-                }}
-              >
-                Save This Address
-              </Button>
-            </Box>
-          )}
-
+        <DialogContent sx={{ pt: 1 }}>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ mb: 1, fontSize: "0.85rem" }}
+          >
+            This helps us show the best products near you.
+          </Typography>
           <TextField
             fullWidth
             multiline
@@ -330,19 +325,23 @@ const NavBar = () => {
             onChange={(e) => setTempAddress(e.target.value)}
           />
         </DialogContent>
-        <DialogActions>
+
+        <DialogActions
+          sx={{
+            justifyContent: "flex-end",
+            pr: 2,
+            pb: 1,
+          }}
+        >
           <Button onClick={() => setOpenDialog(false)} color="inherit">
             Cancel
           </Button>
           <Button
-            onClick={() => {
-              setAddress(tempAddress);
-              setOpenDialog(false);
-            }}
+            onClick={handleAddressSave}
             variant="contained"
             disabled={!tempAddress.trim()}
           >
-            Save
+            Save Address
           </Button>
         </DialogActions>
       </Dialog>
