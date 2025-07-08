@@ -30,32 +30,28 @@ const CartPage = () => {
     const storedCart = JSON.parse(localStorage.getItem("cart")) || [];
     setCartItems(storedCart);
   }, []);
-  const totalAmount = parseFloat(
-    cartItems
-      .reduce((sum, item) => sum + item.price * item.quantity, 0)
-      .toFixed(2)
-  );
-
-  const productIds = cartItems.flatMap((item) =>
-    Array(item.quantity).fill(item.id)
-  ); // If backend expects repeated IDs
 
   const updateCart = (newCart) => {
     setCartItems(newCart);
     localStorage.setItem("cart", JSON.stringify(newCart));
   };
 
-  const incrementQty = (productId) => {
+  const getItemKey = (item) =>
+    `${item.id}_${item.variant?.size || ""}_${item.variant?.color || ""}`;
+
+  const incrementQty = (itemKey) => {
     const updated = cartItems.map((item) =>
-      item.id === productId ? { ...item, quantity: item.quantity + 1 } : item
+      getItemKey(item) === itemKey
+        ? { ...item, quantity: item.quantity + 1 }
+        : item
     );
     updateCart(updated);
   };
 
-  const decrementQty = (productId) => {
+  const decrementQty = (itemKey) => {
     const updated = cartItems
       .map((item) =>
-        item.id === productId
+        getItemKey(item) === itemKey
           ? { ...item, quantity: item.quantity > 1 ? item.quantity - 1 : 1 }
           : item
       )
@@ -63,13 +59,21 @@ const CartPage = () => {
     updateCart(updated);
   };
 
-  const removeFromCart = (productId) => {
-    const updated = cartItems.filter((item) => item.id !== productId);
+  const removeFromCart = (itemKey) => {
+    const updated = cartItems.filter((item) => getItemKey(item) !== itemKey);
     updateCart(updated);
   };
 
+  const totalAmount = cartItems
+    .reduce(
+      (sum, item) =>
+        sum + (item.variant?.price || item.price || 0) * (item.quantity || 1),
+      0
+    )
+    .toFixed(2);
+
   const handleCheckout = () => {
-    if (userId === null) {
+    if (!userId) {
       setSnackbar({
         open: true,
         message: "Login to place order!",
@@ -77,12 +81,21 @@ const CartPage = () => {
       });
       return;
     }
+
+    const items = cartItems.map((item) => ({
+      productId: item.id,
+      size: item.variant?.size || null,
+      color: item.variant?.color || null,
+      quantity: item.quantity,
+      price: item.variant?.price || item.price,
+    }));
+
     axios
       .post(
         `http://localhost:8080/orders/user/${userId}`,
         {
-          productIds,
-          totalAmount,
+          items,
+          totalAmount: parseFloat(totalAmount),
         },
         {
           headers: {
@@ -96,17 +109,9 @@ const CartPage = () => {
         if (status === 200 || orderId != null) {
           localStorage.removeItem("cart");
           setCartItems([]);
-
-          // setSnackbar({
-          //   open: true,
-          //   message: message || "Order placed successfully!",
-          //   severity: "success",
-          // });
-
-          // 👇 Pass orderId and amount to payment page via state
           navigate("/order/checkout", {
             state: {
-              orderId: orderId,
+              orderId,
               amount: totalAmount,
             },
           });
@@ -120,7 +125,6 @@ const CartPage = () => {
       })
       .catch((error) => {
         console.error("Checkout error:", error);
-
         setSnackbar({
           open: true,
           message: "Something went wrong. Please try again later.",
@@ -144,56 +148,72 @@ const CartPage = () => {
       ) : (
         <>
           <Grid container spacing={2}>
-            {cartItems.map((item) => (
-              <Grid item xs={12} sm={6} md={4} lg={3} key={item.id}>
-                <Card
-                  sx={{
-                    height: "100%",
-                    display: "flex",
-                    flexDirection: "column",
-                  }}
-                >
-                  <CardMedia
-                    component="img"
-                    image={item.image || "https://via.placeholder.com/300"}
-                    alt={item.name}
-                    height="180"
-                  />
-                  <CardContent sx={{ flexGrow: 1 }}>
-                    <Typography variant="h6" gutterBottom>
-                      {item.name}
-                    </Typography>
-                    <Typography color="text.secondary" variant="body2">
-                      {item.description}
-                    </Typography>
-                    <Typography
-                      variant="subtitle1"
-                      color="primary"
-                      sx={{ mt: 1 }}
-                    >
-                      ₹{item.price} × {item.quantity} = ₹
-                      {item.price * item.quantity}
-                    </Typography>
-                  </CardContent>
-                  <CardActions>
-                    <Button size="small" onClick={() => decrementQty(item.id)}>
-                      -
-                    </Button>
-                    <Typography>{item.quantity}</Typography>
-                    <Button size="small" onClick={() => incrementQty(item.id)}>
-                      +
-                    </Button>
-                    <Button
-                      size="small"
-                      color="error"
-                      onClick={() => removeFromCart(item.id)}
-                    >
-                      Remove
-                    </Button>
-                  </CardActions>
-                </Card>
-              </Grid>
-            ))}
+            {cartItems.map((item) => {
+              const itemKey = getItemKey(item);
+              const price = item.variant?.price || item.price || 0;
+
+              return (
+                <Grid item xs={12} sm={6} md={4} lg={3} key={itemKey}>
+                  <Card
+                    sx={{
+                      height: "100%",
+                      display: "flex",
+                      flexDirection: "column",
+                    }}
+                  >
+                    <CardMedia
+                      component="img"
+                      image={item.image || "https://via.placeholder.com/300"}
+                      alt={item.name}
+                      height="180"
+                    />
+                    <CardContent sx={{ flexGrow: 1 }}>
+                      <Typography variant="h6">{item.name}</Typography>
+                      {item.variant?.size && (
+                        <Typography variant="body2">
+                          Size: {item.variant.size}
+                        </Typography>
+                      )}
+                      {item.variant?.color && (
+                        <Typography variant="body2">
+                          Color: {item.variant.color}
+                        </Typography>
+                      )}
+                      <Typography
+                        variant="subtitle1"
+                        color="primary"
+                        sx={{ mt: 1 }}
+                      >
+                        ₹{price} × {item.quantity} = ₹
+                        {(price * item.quantity).toFixed(2)}
+                      </Typography>
+                    </CardContent>
+                    <CardActions>
+                      <Button
+                        size="small"
+                        onClick={() => decrementQty(itemKey)}
+                      >
+                        -
+                      </Button>
+                      <Typography>{item.quantity}</Typography>
+                      <Button
+                        size="small"
+                        onClick={() => incrementQty(itemKey)}
+                      >
+                        +
+                      </Button>
+                      <Button
+                        size="small"
+                        color="error"
+                        onClick={() => removeFromCart(itemKey)}
+                      >
+                        Remove
+                      </Button>
+                    </CardActions>
+                  </Card>
+                </Grid>
+              );
+            })}
           </Grid>
 
           <Typography variant="h6" sx={{ mt: 3 }}>

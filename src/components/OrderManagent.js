@@ -45,7 +45,6 @@ const OrderManagement = () => {
   const orderStatuses = [
     { value: "PENDING", label: "Pending", color: "warning" },
     { value: "CONFIRMED", label: "Confirmed", color: "info" },
-    // Add other statuses if supported
   ];
 
   useEffect(() => {
@@ -129,7 +128,7 @@ const OrderManagement = () => {
           value={searchTerm}
           onChange={(e) => {
             setSearchTerm(e.target.value);
-            setPage(0); // reset page on search
+            setPage(0);
           }}
           InputProps={{ startAdornment: <Search sx={{ mr: 1 }} /> }}
           sx={{ flexGrow: 1, minWidth: 200 }}
@@ -140,7 +139,7 @@ const OrderManagement = () => {
             value={statusFilter}
             onChange={(e) => {
               setStatusFilter(e.target.value);
-              setPage(0); // reset page on filter
+              setPage(0);
             }}
             label="Status Filter"
           >
@@ -194,7 +193,9 @@ const OrderManagement = () => {
                     size="small"
                   />
                 </TableCell>
-                <TableCell>{o.productIds.length}</TableCell>
+                <TableCell>
+                  {Array.isArray(o.items) ? o.items.length : 0}
+                </TableCell>
                 <TableCell>
                   <Button
                     size="small"
@@ -259,7 +260,7 @@ const OrderManagement = () => {
                     <Grid item xs={12} sm={6}>
                       <Typography>
                         <strong>Products Count:</strong>{" "}
-                        {selectedOrder.productIds.length}
+                        {selectedOrder.items?.length || 0}
                       </Typography>
                     </Grid>
                     <Grid item xs={12} sm={6}>
@@ -270,7 +271,8 @@ const OrderManagement = () => {
                   </Grid>
                 </CardContent>
               </Card>
-              <Card>
+
+              <Card sx={{ mb: 2 }}>
                 <CardContent>
                   <FormControl fullWidth>
                     <InputLabel>Status</InputLabel>
@@ -291,6 +293,50 @@ const OrderManagement = () => {
                       ))}
                     </Select>
                   </FormControl>
+                </CardContent>
+              </Card>
+
+              {/* Items table */}
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>
+                    Ordered Items
+                  </Typography>
+                  {selectedOrder.items && selectedOrder.items.length > 0 ? (
+                    <TableContainer>
+                      <Table size="small">
+                        <TableHead>
+                          <TableRow>
+                            <TableCell>#</TableCell>
+                            <TableCell>Product ID</TableCell>
+                            <TableCell>Size</TableCell>
+                            <TableCell>Color</TableCell>
+                            <TableCell>Price</TableCell>
+                            <TableCell>Quantity</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {selectedOrder.items.map((item, idx) => (
+                            <TableRow key={idx}>
+                              <TableCell>{idx + 1}</TableCell>
+                              <TableCell>{item.productId}</TableCell>
+                              <TableCell>{item.size || "-"}</TableCell>
+                              <TableCell>{item.color || "-"}</TableCell>
+                              <TableCell>
+                                ₹
+                                {item.price !== null && item.price !== undefined
+                                  ? item.price
+                                  : "-"}
+                              </TableCell>
+                              <TableCell>{item.quantity}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  ) : (
+                    <Typography>No item details available</Typography>
+                  )}
                 </CardContent>
               </Card>
             </Box>

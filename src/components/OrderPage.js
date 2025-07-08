@@ -1,21 +1,22 @@
+// src/pages/OrdersPage.jsx
 import React, { useEffect, useState } from "react";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
+  Box,
   Typography,
+  Paper,
   CircularProgress,
+  Grid,
+  Card,
+  CardContent,
+  Chip,
 } from "@mui/material";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 const OrdersPage = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const userId = localStorage.getItem("userId");
+  const navigate = useNavigate();
   const token = localStorage.getItem("authToken");
 
   useEffect(() => {
@@ -24,8 +25,13 @@ const OrdersPage = () => {
         const res = await axios.get(`http://localhost:8080/orders/my`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        console.log(res.data);
-        setOrders(res.data);
+
+        // Sort by createdAt descending (newest first)
+        const sortedOrders = res.data.sort(
+          (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+        );
+
+        setOrders(sortedOrders);
       } catch (err) {
         console.error("Failed to fetch orders:", err);
       } finally {
@@ -34,18 +40,18 @@ const OrdersPage = () => {
     };
 
     fetchOrders();
-  }, [userId, token]);
+  }, [token]);
 
   if (loading) {
     return (
-      <div style={{ textAlign: "center", marginTop: 50 }}>
+      <Box sx={{ textAlign: "center", mt: 5 }}>
         <CircularProgress />
-      </div>
+      </Box>
     );
   }
 
   return (
-    <div style={{ padding: "2rem" }}>
+    <Box sx={{ p: 3 }}>
       <Typography variant="h5" gutterBottom>
         My Orders
       </Typography>
@@ -53,34 +59,52 @@ const OrdersPage = () => {
       {orders.length === 0 ? (
         <Typography>No orders found.</Typography>
       ) : (
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Order ID</TableCell>
-                <TableCell>Date</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Total Amount</TableCell>
-                <TableCell>Items</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {orders.map((order) => (
-                <TableRow key={order.id}>
-                  <TableCell>{order.orderId}</TableCell>
-                  <TableCell>
-                    {new Date(order.createdAt).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>{order.status}</TableCell>
-                  <TableCell>₹{order.totalAmount}</TableCell>
-                  <TableCell>{order.items?.length || 0}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+        <Grid container spacing={2}>
+          {orders.map((order, index) => (
+            <Grid item xs={12} md={6} key={index}>
+              <Card
+                sx={{
+                  cursor: "pointer",
+                  transition: "0.3s",
+                  "&:hover": { boxShadow: 6 },
+                }}
+                onClick={() => navigate(`/orders/${order.orderId}`)}
+              >
+                <CardContent>
+                  <Typography variant="subtitle1">
+                    <strong>Order ID:</strong> {order.orderId}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Date:{" "}
+                    {order.createdAt
+                      ? new Date(order.createdAt).toLocaleDateString()
+                      : "N/A"}
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>Total:</strong> ₹{order.totalAmount}
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>Items:</strong> {order.items?.length || 0}
+                  </Typography>
+                  <Chip
+                    label={order.status}
+                    size="small"
+                    color={
+                      order.status === "CONFIRMED"
+                        ? "success"
+                        : order.status === "PENDING"
+                        ? "warning"
+                        : "default"
+                    }
+                    sx={{ mt: 1 }}
+                  />
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
       )}
-    </div>
+    </Box>
   );
 };
 

@@ -22,6 +22,9 @@ import {
   Box,
   IconButton,
   Chip,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
 } from "@mui/material";
 import { ArrowBack, Add, Search } from "@mui/icons-material";
 import axios from "axios";
@@ -107,7 +110,7 @@ const ProductManagement = () => {
         });
     } else if (dialogMode === "update") {
       axios
-        .patch(
+        .put(
           `http://localhost:8080/products/${selectedProduct.id}`,
           selectedProduct,
           {
@@ -306,13 +309,13 @@ const ProductManagement = () => {
             ? "Update Product"
             : "Product Details"}
         </DialogTitle>
-        <DialogContent>
+        <DialogContent dividers>
+          {/* --- Main Product Fields --- */}
           <Box
             sx={{
               display: "grid",
               gridTemplateColumns: "1fr 1fr",
               gap: 2,
-              mt: 1,
             }}
           >
             <TextField
@@ -423,6 +426,7 @@ const ProductManagement = () => {
               </Select>
             </FormControl>
           </Box>
+
           <TextField
             label="Description"
             fullWidth
@@ -437,9 +441,153 @@ const ProductManagement = () => {
                 description: e.target.value,
               })
             }
-            sx={{ mt: 2 }}
+            sx={{ mt: 3 }}
           />
+
+          {/* --- Variants Accordion --- */}
+          <Box sx={{ mt: 4 }}>
+            <Accordion defaultExpanded>
+              <AccordionSummary
+                expandIcon={<Add />}
+                sx={{ bgcolor: "#f9f9f9" }}
+              >
+                <Typography variant="subtitle1">
+                  Product Variants ({selectedProduct?.variants?.length || 0})
+                </Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: 2,
+                    alignItems: "flex-start",
+                  }}
+                >
+                  {(selectedProduct?.variants || []).map((variant, index) => (
+                    <Paper
+                      key={index}
+                      sx={{
+                        p: 2,
+                        width: "300px",
+                        borderRadius: 2,
+                        boxShadow: 2,
+                        position: "relative",
+                      }}
+                    >
+                      <TextField
+                        label="Size"
+                        fullWidth
+                        value={variant.size}
+                        onChange={(e) => {
+                          const updated = [...selectedProduct.variants];
+                          updated[index].size = e.target.value;
+                          setSelectedProduct({
+                            ...selectedProduct,
+                            variants: updated,
+                          });
+                        }}
+                        sx={{ mb: 1 }}
+                        disabled={dialogMode === "view"}
+                      />
+                      <TextField
+                        label="Color"
+                        fullWidth
+                        value={variant.color}
+                        onChange={(e) => {
+                          const updated = [...selectedProduct.variants];
+                          updated[index].color = e.target.value;
+                          setSelectedProduct({
+                            ...selectedProduct,
+                            variants: updated,
+                          });
+                        }}
+                        sx={{ mb: 1 }}
+                        disabled={dialogMode === "view"}
+                      />
+                      <TextField
+                        label="Price"
+                        fullWidth
+                        type="number"
+                        value={variant.price}
+                        onChange={(e) => {
+                          const updated = [...selectedProduct.variants];
+                          updated[index].price = parseFloat(e.target.value);
+                          setSelectedProduct({
+                            ...selectedProduct,
+                            variants: updated,
+                          });
+                        }}
+                        sx={{ mb: 1 }}
+                        disabled={dialogMode === "view"}
+                      />
+                      <TextField
+                        label="Stock"
+                        fullWidth
+                        type="number"
+                        value={variant.stock}
+                        onChange={(e) => {
+                          const updated = [...selectedProduct.variants];
+                          updated[index].stock = parseInt(e.target.value);
+                          setSelectedProduct({
+                            ...selectedProduct,
+                            variants: updated,
+                          });
+                        }}
+                        disabled={dialogMode === "view"}
+                      />
+                      {/* ❌ Delete button only shown in edit/add mode */}
+                      {dialogMode !== "view" && (
+                        <IconButton
+                          size="small"
+                          onClick={() => {
+                            const confirmed = window.confirm(
+                              "Are you sure you want to delete this variant?"
+                            );
+                            if (confirmed) {
+                              const updated = [...selectedProduct.variants];
+                              updated.splice(index, 1);
+                              setSelectedProduct({
+                                ...selectedProduct,
+                                variants: updated,
+                              });
+                            }
+                          }}
+                          sx={{ position: "absolute", top: 5, right: 5 }}
+                        >
+                          ❌
+                        </IconButton>
+                      )}
+                    </Paper>
+                  ))}
+
+                  {dialogMode !== "view" && (
+                    <Button
+                      variant="outlined"
+                      onClick={() => {
+                        const updated = selectedProduct.variants || [];
+                        updated.push({
+                          size: "",
+                          color: "",
+                          price: "",
+                          stock: "",
+                        });
+                        setSelectedProduct({
+                          ...selectedProduct,
+                          variants: updated,
+                        });
+                      }}
+                      sx={{ height: "fit-content", mt: 2 }}
+                    >
+                      + Add Variant
+                    </Button>
+                  )}
+                </Box>
+              </AccordionDetails>
+            </Accordion>
+          </Box>
         </DialogContent>
+
         <DialogActions>
           <Button onClick={() => setProductDialogOpen(false)} color="inherit">
             Cancel
