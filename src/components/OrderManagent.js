@@ -86,16 +86,27 @@ const OrderManagement = () => {
     }
   };
 
-  const filtered = orders.filter((o) => {
-    const matchText = searchTerm
-      ? o.orderId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        o.userId?.toString().includes(searchTerm)
-      : true;
-    const matchStatus = statusFilter === "all" || o.status === statusFilter;
-    return matchText && matchStatus;
+  // Filter orders based on search and status
+  const filtered = orders.filter((order) => {
+    const matchesSearch =
+      order.orderId?.toString().includes(searchTerm) ||
+      order.userId?.toString().includes(searchTerm);
+
+    const matchesStatus =
+      statusFilter === "all" || order.status === statusFilter;
+
+    return matchesSearch && matchesStatus;
   });
 
-  const paginatedOrders = filtered.slice(
+  // Sort filtered orders by createdAt (latest first)
+  const sortedOrders = [...filtered].sort((a, b) => {
+    const dateA = new Date(a.createdAt);
+    const dateB = new Date(b.createdAt);
+    return dateB - dateA; // Descending order: newest first
+  });
+
+  // Paginate
+  const paginatedOrders = sortedOrders.slice(
     page * rowsPerPage,
     page * rowsPerPage + rowsPerPage
   );
@@ -105,8 +116,8 @@ const OrderManagement = () => {
   };
 
   return (
-    <Container sx={{ mt: 4 }}>
-      <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
+    <Container sx={{ mt: 0 }}>
+      <Box sx={{ display: "flex", alignItems: "center", mb: 0 }}>
         <IconButton onClick={() => navigate("/admin-dashboard")} sx={{ mr: 2 }}>
           <ArrowBack />
         </IconButton>
@@ -116,7 +127,7 @@ const OrderManagement = () => {
       <Paper
         sx={{
           p: 2,
-          mb: 3,
+          mb: 1,
           display: "flex",
           gap: 2,
           flexWrap: "wrap",
@@ -131,6 +142,7 @@ const OrderManagement = () => {
             setPage(0);
           }}
           InputProps={{ startAdornment: <Search sx={{ mr: 1 }} /> }}
+          size="small" // minimize height
           sx={{ flexGrow: 1, minWidth: 200 }}
         />
         <FormControl sx={{ minWidth: 160 }}>
@@ -142,6 +154,7 @@ const OrderManagement = () => {
               setPage(0);
             }}
             label="Status Filter"
+            size="small" // minimize height
           >
             <MenuItem value="all">All</MenuItem>
             {orderStatuses.map((s) => (
@@ -154,7 +167,7 @@ const OrderManagement = () => {
       </Paper>
 
       <TableContainer component={Paper}>
-        <Table>
+        <Table size="small">
           <TableHead>
             <TableRow sx={{ backgroundColor: "#eee" }}>
               <TableCell>
@@ -174,6 +187,9 @@ const OrderManagement = () => {
               </TableCell>
               <TableCell>
                 <strong>Actions</strong>
+              </TableCell>
+              <TableCell>
+                <strong>Created At</strong>
               </TableCell>
             </TableRow>
           </TableHead>
@@ -208,6 +224,12 @@ const OrderManagement = () => {
                   >
                     View
                   </Button>
+                </TableCell>
+                <TableCell>
+                  {new Date(o.createdAt).toLocaleString("en-IN", {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  })}
                 </TableCell>
               </TableRow>
             ))}

@@ -177,7 +177,7 @@ const NavBar = () => {
               }}
               onClick={() => navigate("/home")}
             >
-              ShopZone
+              Shop
             </Typography>
             <Box
               sx={{

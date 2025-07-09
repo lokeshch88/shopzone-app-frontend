@@ -23,8 +23,7 @@ import {
   OutlinedInput,
 } from "@mui/material";
 import axios from "axios";
-
-const HomePage = () => {
+const HomeCheck = () => {
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -41,14 +40,6 @@ const HomePage = () => {
   const userId = localStorage.getItem("userId");
   const navigate = useNavigate();
   const theme = useTheme();
-
-  useEffect(() => {
-    navigator.geolocation.getCurrentPosition((pos) => {
-      console.log("Latitude:", pos.coords.latitude);
-      console.log("Longitude:", pos.coords.longitude);
-      console.log("Accuracy (meters):", pos.coords.accuracy);
-    });
-  });
 
   useEffect(() => {
     axios
@@ -154,7 +145,7 @@ const HomePage = () => {
   };
 
   return (
-    <Container maxWidth="lg" sx={{ py: 2 }}>
+    <div>
       <Typography
         variant="h3"
         fontWeight="bold"
@@ -176,63 +167,78 @@ const HomePage = () => {
         Browse the best offers for you – food, lifestyle, and more!
       </Typography>
 
-      {/* Main 3-column layout */}
-      <Grid container spacing={6}>
-        {/* Column 1: Filter & Sort */}
-        <Grid item xs={12} md={3}>
-          <Box
-            sx={{
-              borderRight: { md: `1px solid ${theme.palette.divider}` },
-              pr: { md: 2 },
-            }}
-          >
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: { xs: "column", md: "row" }, // stack on xs, row on md+
+          justifyContent: "flex-start", // align left, no forced gap
+          gap: 3, // fixed 16px gap between items (if MUI default spacing 8px)
+          px: 2, // 16px padding left & right on container
+          mt: 4,
+        }}
+      >
+        {/* Left Sidebar box starts */}
+        <Box
+          sx={{
+            width: 240,
+            p: 2,
+            flexShrink: 0,
+            borderRight: { md: `1px solid ${theme.palette.divider}` },
+            pr: { md: 2 },
+          }}
+        >
+          <Typography variant="h6" gutterBottom fontWeight="bold">
+            Filter by Category
+          </Typography>
+          <FormControl fullWidth>
+            <InputLabel id="category-filter-label">Categories</InputLabel>
+            <Select
+              labelId="category-filter-label"
+              multiple
+              value={selectedCategories}
+              onChange={handleCategoryChange}
+              input={<OutlinedInput label="Categories" />}
+              renderValue={(selected) => selected.join(", ")}
+            >
+              {categories.map((category) => (
+                <MenuItem key={category} value={category}>
+                  <Checkbox checked={selectedCategories.includes(category)} />
+                  <ListItemText primary={category} />
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <Box mt={4}>
             <Typography variant="h6" gutterBottom fontWeight="bold">
-              Filter by Category
+              Sort By
             </Typography>
             <FormControl fullWidth>
-              <InputLabel id="category-filter-label">Categories</InputLabel>
+              <InputLabel id="sort-by-label">Sort</InputLabel>
               <Select
-                labelId="category-filter-label"
-                multiple
-                value={selectedCategories}
-                onChange={handleCategoryChange}
-                input={<OutlinedInput label="Categories" />}
-                renderValue={(selected) => selected.join(", ")}
+                labelId="sort-by-label"
+                value={sortBy}
+                label="Sort"
+                onChange={handleSortChange}
               >
-                {categories.map((category) => (
-                  <MenuItem key={category} value={category}>
-                    <Checkbox checked={selectedCategories.includes(category)} />
-                    <ListItemText primary={category} />
-                  </MenuItem>
-                ))}
+                <MenuItem value="">None</MenuItem>
+                <MenuItem value="priceLowToHigh">Price: Low to High</MenuItem>
+                <MenuItem value="priceHighToLow">Price: High to Low</MenuItem>
+                <MenuItem value="nameAZ">Name: A to Z</MenuItem>
+                <MenuItem value="nameZA">Name: Z to A</MenuItem>
               </Select>
             </FormControl>
-
-            <Box mt={4}>
-              <Typography variant="h6" gutterBottom fontWeight="bold">
-                Sort By
-              </Typography>
-              <FormControl fullWidth>
-                <InputLabel id="sort-by-label">Sort</InputLabel>
-                <Select
-                  labelId="sort-by-label"
-                  value={sortBy}
-                  label="Sort"
-                  onChange={handleSortChange}
-                >
-                  <MenuItem value="">None</MenuItem>
-                  <MenuItem value="priceLowToHigh">Price: Low to High</MenuItem>
-                  <MenuItem value="priceHighToLow">Price: High to Low</MenuItem>
-                  <MenuItem value="nameAZ">Name: A to Z</MenuItem>
-                  <MenuItem value="nameZA">Name: Z to A</MenuItem>
-                </Select>
-              </FormControl>
-            </Box>
           </Box>
-        </Grid>
-
-        {/* Column 2: Product Cards */}
-        <Grid item xs={12} md={6}>
+        </Box>
+        {/* Left Sidebar box ends */}
+        {/* Center Content box starts */}
+        <Box
+          sx={{
+            flexGrow: 1,
+            maxWidth: "1000px",
+            p: 1,
+          }}
+        >
           <Grid container spacing={4} justifyContent="center">
             {filteredProducts.map((product) => (
               <Grid item key={product.id} xs={12} sm={6}>
@@ -303,30 +309,23 @@ const HomePage = () => {
               </Typography>
             )}
           </Grid>
-        </Grid>
+        </Box>
 
-        {/* Column 3: Reserved (empty for now) */}
-        <Grid item xs={false} md={3}>
-          {/* Future content */}
-        </Grid>
-      </Grid>
-
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={snackbar.duration || 2500}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-      >
-        <Alert
-          onClose={handleCloseSnackbar}
-          severity={snackbar.severity}
-          sx={{ width: "100%" }}
+        {/* Right Sidebar box starts */}
+        {/* <Box
+          sx={{
+            width: 240,
+            // background: "lightpink",
+            p: 2,
+            flexShrink: 0,
+          }}
         >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Container>
+          <Typography>Right (empty for now)</Typography>
+        </Box> */}
+        {/* Right Sidebar box ends */}
+      </Box>
+    </div>
   );
 };
 
-export default HomePage;
+export default HomeCheck;

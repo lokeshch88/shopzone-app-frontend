@@ -128,8 +128,15 @@ const AdminDashboard = () => {
     },
   ];
 
+  const truncateText = (text, maxLength) => {
+    if (!text) return "";
+    return text.length > maxLength
+      ? text.substring(0, maxLength) + "..."
+      : text;
+  };
+
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+    <Container maxWidth="lg" sx={{ mt: 1, mb: 1 }}>
       <Box sx={{ mb: 4 }}>
         <Typography
           variant="h4"
@@ -185,6 +192,7 @@ const AdminDashboard = () => {
                 display: "flex",
                 flexDirection: "column",
                 height: 300,
+                width: 200,
                 border: `2px solid ${card.color}20`,
                 "&:hover": {
                   transform: "translateY(-4px)",
@@ -196,14 +204,14 @@ const AdminDashboard = () => {
               <Box sx={{ flexGrow: 1, textAlign: "center", mb: 2 }}>
                 <Box sx={{ color: card.color, mb: 1 }}>{card.icon}</Box>
                 <Typography variant="h6" gutterBottom>
-                  {card.title}
+                  {truncateText(card.title, 25)}
                 </Typography>
                 <Typography
                   variant="body2"
                   color="text.secondary"
                   sx={{ mb: 2 }}
                 >
-                  {card.description}
+                  {truncateText(card.description, 25)}
                 </Typography>
                 <Typography
                   variant="h4"

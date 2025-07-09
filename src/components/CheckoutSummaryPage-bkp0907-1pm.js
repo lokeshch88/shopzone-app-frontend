@@ -29,8 +29,6 @@ const CheckoutSummaryPage = () => {
 
   const [addresses, setAddresses] = useState([]);
   const [selectedAddressIndex, setSelectedAddressIndex] = useState(0);
-  const [selectedAddress, setSelectedAddress] = useState(null);
-  const [deliveryDate, setDeliveryDate] = useState("");
 
   useEffect(() => {
     const fetchAddresses = async () => {
@@ -46,9 +44,6 @@ const CheckoutSummaryPage = () => {
           }
         );
         setAddresses(res.data || []);
-        if (res.data?.length > 0) {
-          setSelectedAddress(res.data[0]);
-        }
       } catch (error) {
         console.error("Failed to fetch addresses", error);
       }
@@ -69,35 +64,12 @@ const CheckoutSummaryPage = () => {
       .filter(Boolean)
       .join(", ");
   };
-  const token = localStorage.getItem("authToken");
-  const fetchEstimatedDeliveryDate = async (addressId) => {
-    try {
-      const res = await axios.get(
-        `http://localhost:8080/checkout/delivery/estimate/${addressId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      if (res.data?.estimatedDate) {
-        setDeliveryDate(new Date(res.data.estimatedDate).toDateString());
-      }
-    } catch (err) {
-      console.error("Failed to fetch delivery estimate:", err);
-      setDeliveryDate("Unavailable");
-    }
-  };
 
-  useEffect(() => {
-    if (selectedAddress?.id) {
-      fetchEstimatedDeliveryDate(selectedAddress.id);
-    }
-  }, [selectedAddress]);
-
+  // === Fetch order details ===
   useEffect(() => {
     const fetchOrder = async () => {
       try {
+        const token = localStorage.getItem("authToken");
         const res = await axios.get(`http://localhost:8080/orders/${orderId}`, {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -118,6 +90,7 @@ const CheckoutSummaryPage = () => {
     if (orderId) fetchOrder();
   }, [orderId, deliveryFee]);
 
+  // === Apply Coupon ===
   const applyCoupon = () => {
     if (coupon.trim().toUpperCase() === "SAVE50") {
       const newDiscount = 50;
@@ -141,6 +114,7 @@ const CheckoutSummaryPage = () => {
     });
   };
 
+  // === Format Functions ===
   const formatDateTime = (dateStr) =>
     dateStr ? new Date(dateStr).toLocaleString() : "N/A";
 
@@ -158,79 +132,77 @@ const CheckoutSummaryPage = () => {
         Checkout Summary
       </Typography>
 
+      {/* === Address Section (placeholder for future) === */}
       <Card variant="outlined" sx={{ mb: 3 }}>
         <CardContent>
-          <Typography variant="h6" gutterBottom>
-            Select Delivery Address
-          </Typography>
+          <Typography variant="h6">Delivery Address</Typography>
+          <Typography color="text.secondary" mt={1}>
+            <Card variant="outlined" sx={{ mb: 3 }}>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Select Delivery Address
+                </Typography>
 
-          <Box
-            sx={{
-              overflowX: "auto",
-              whiteSpace: "nowrap",
-              display: "flex",
-              gap: 2,
-              pb: 5,
-            }}
-          >
-            {addresses.map((addr, index) => (
-              <Box
-                key={index}
-                component="label"
-                sx={{
-                  display: "inline-block",
-                  minWidth: 180,
-                  maxWidth: 180,
-                  cursor: "pointer",
-                }}
-              >
-                <input
-                  type="radio"
-                  name="selectedAddress"
-                  value={index}
-                  checked={selectedAddressIndex === index}
-                  onChange={() => {
-                    setSelectedAddressIndex(index);
-                    setSelectedAddress(addresses[index]);
-                  }}
-                  style={{ display: "none" }}
-                />
-                <Card
-                  variant="outlined"
+                <Box
                   sx={{
-                    p: 1,
-                    backgroundColor:
-                      selectedAddressIndex === index ? "#e3f2fd" : "#fff",
-                    border:
-                      selectedAddressIndex === index
-                        ? "2px solid #1976d2"
-                        : "1px solid #ccc",
-                    transition: "all 0.3s",
-                    height: "100%",
+                    overflowX: "auto",
+                    whiteSpace: "nowrap",
+                    display: "flex",
+                    gap: 2,
+                    pb: 5,
                   }}
                 >
-                  <Typography variant="subtitle2" fontWeight="bold">
-                    Address {index + 1}
-                  </Typography>
-                  <Typography variant="body2" sx={{ mt: 1 }}>
-                    {formatAddress(addr)}
-                  </Typography>
-                </Card>
-              </Box>
-            ))}
-          </Box>
+                  {addresses.map((addr, index) => (
+                    <Box
+                      key={index}
+                      component="label"
+                      sx={{
+                        display: "inline-block",
+                        minWidth: 200,
+                        maxWidth: 200,
+                        maxHeight: 50,
+                        cursor: "pointer",
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        name="selectedAddress"
+                        value={index}
+                        checked={selectedAddressIndex === index}
+                        onChange={() => setSelectedAddressIndex(index)}
+                        style={{ display: "none" }}
+                      />
+                      <Card
+                        variant="outlined"
+                        sx={{
+                          p: 2,
+                          backgroundColor:
+                            selectedAddressIndex === index ? "#e3f2fd" : "#fff",
+                          border:
+                            selectedAddressIndex === index
+                              ? "2px solid #1976d2"
+                              : "1px solid #ccc",
+                          transition: "all 0.3s",
+                          height: "100%",
+                        }}
+                      >
+                        <Typography variant="subtitle2" fontWeight="bold">
+                          Address {index + 1}
+                        </Typography>
+                        <Typography variant="body2" sx={{ mt: 1 }}>
+                          {formatAddress(addr)}
+                        </Typography>
+                      </Card>
+                    </Box>
+                  ))}
+                </Box>
+              </CardContent>
+            </Card>
+          </Typography>
         </CardContent>
       </Card>
 
-      {selectedAddress && (
-        <Typography color="text.secondary" sx={{ mt: 1, ml: 1, pb: 2 }}>
-          Estimated Delivery:{" "}
-          <Box component="span" sx={{ color: "primary.main", fontWeight: 500 }}>
-            {deliveryDate}
-          </Box>
-        </Typography>
-      )}
-
+      {/* === Offers Section === */}
       <Card variant="outlined" sx={{ mb: 3 }}>
         <CardContent>
           <Typography variant="h6">Apply Coupon</Typography>
@@ -260,6 +232,7 @@ const CheckoutSummaryPage = () => {
         </CardContent>
       </Card>
 
+      {/* === Order Summary Section === */}
       <Card variant="outlined" sx={{ mb: 3 }}>
         <CardContent>
           <Typography variant="h6" gutterBottom>
@@ -293,7 +266,7 @@ const CheckoutSummaryPage = () => {
 
           <Box sx={{ display: "flex", justifyContent: "space-between" }}>
             <Typography>Delivery Fee</Typography>
-            <Typography>₹50</Typography>
+            <Typography>₹{deliveryFee}</Typography>
           </Box>
 
           {discount > 0 && (
@@ -316,6 +289,7 @@ const CheckoutSummaryPage = () => {
         </CardContent>
       </Card>
 
+      {/* === Proceed Button Section === */}
       <Box sx={{ textAlign: "right" }}>
         <Button
           variant="contained"

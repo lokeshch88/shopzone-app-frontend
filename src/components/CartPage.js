@@ -92,7 +92,7 @@ const CartPage = () => {
 
     axios
       .post(
-        `http://localhost:8080/orders/user/${userId}`,
+        `http://localhost:8080/orders/user/${userId}`, //create order api
         {
           items,
           totalAmount: parseFloat(totalAmount),
