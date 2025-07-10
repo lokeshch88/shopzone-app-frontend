@@ -268,6 +268,9 @@ const ProductManagement = () => {
                 <strong>Status</strong>
               </TableCell>
               <TableCell>
+                <strong>Created Date</strong>
+              </TableCell>
+              <TableCell>
                 <strong>Actions</strong>
               </TableCell>
             </TableRow>
@@ -288,6 +291,12 @@ const ProductManagement = () => {
                       color={product.isActive ? "success" : "default"}
                       size="small"
                     />
+                  </TableCell>
+                  <TableCell>
+                    {new Date(product.createdAt).toLocaleString("en-IN", {
+                      dateStyle: "medium",
+                      timeStyle: "short",
+                    })}
                   </TableCell>
                   <TableCell>
                     <Button
