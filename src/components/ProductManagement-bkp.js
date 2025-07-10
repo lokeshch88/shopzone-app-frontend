@@ -36,25 +36,18 @@ const ProductManagement = () => {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [searchProduct, setSearchProduct] = useState("");
-  const [selectedProduct, setSelectedProduct] = useState({
-    name: "",
-    price: "",
-    description: "",
-    quantityInStock: "",
-    brand: "",
-    categoryId: "",
-    sku: "",
-    mrp: "",
-    isActive: true,
-    variants: [],
-    variantColors: [],
-    variantSizes: [],
-  });
+  const [selectedProduct, setSelectedProduct] = useState(null);
   const [isProductDialogOpen, setProductDialogOpen] = useState(false);
-  const [dialogMode, setDialogMode] = useState("view");
+  const [dialogMode, setDialogMode] = useState("view"); // "add", "update", "view"
 
   const token = localStorage.getItem("authToken");
   const navigate = useNavigate();
+  const [tempColor, setTempColor] = useState("");
+  const [tempSize, setTempSize] = useState("");
+  useEffect(() => {
+    fetchProducts();
+    fetchCategories();
+  }, []);
 
   const fetchProducts = () => {
     axios
@@ -148,14 +141,8 @@ const ProductManagement = () => {
     return category ? category.name : "Unknown";
   };
 
-  const [variantOptions, setVariantOptions] = useState({
-    colors: [],
-    sizes: [],
-  });
-
   useEffect(() => {
-    fetchProducts();
-    fetchCategories();
+    // Replace with your actual endpoint
     fetch("http://localhost:8080/products/productvariant")
       .then((res) => res.json())
       .then((data) => {
@@ -168,23 +155,15 @@ const ProductManagement = () => {
         console.error("Failed to fetch variant options", err);
       });
   }, []);
-
-  //   const sortedOrders = [...filtered].sort((a, b) => {
-  //     const dateA = new Date(a.createdAt);
-  //     const dateB = new Date(b.createdAt);
-  //     return dateB - dateA; // Descending order: newest first
-  //   });
-
-  //   // Paginate
-  //   const paginatedOrders = sortedOrders.slice(
-  //     page * rowsPerPage,
-  //     page * rowsPerPage + rowsPerPage
-  //   );
+  const [variantOptions, setVariantOptions] = useState({
+    colors: [],
+    sizes: [],
+  });
 
   return (
     <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
       {/* Header */}
-      <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+      <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
         <IconButton onClick={() => navigate("/admin-dashboard")} sx={{ mr: 2 }}>
           <ArrowBack />
         </IconButton>
@@ -213,7 +192,6 @@ const ProductManagement = () => {
                 <Search sx={{ mr: 1, color: "text.secondary" }} />
               ),
             }}
-            size="small" // minimize height
             sx={{ flexGrow: 1, minWidth: 250 }}
           />
           <Button
@@ -234,7 +212,6 @@ const ProductManagement = () => {
               });
               setProductDialogOpen(true);
             }}
-            size="small" // minimize height
           >
             Add Product
           </Button>
@@ -243,7 +220,7 @@ const ProductManagement = () => {
 
       {/* Products Table */}
       <TableContainer component={Paper}>
-        <Table size="small">
+        <Table>
           <TableHead>
             <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
               <TableCell>
@@ -503,7 +480,7 @@ const ProductManagement = () => {
           />
           {/* --- Variants Accordion --- */}
           <Box sx={{ mt: 4 }}>
-            <Accordion>
+            <Accordion defaultExpanded>
               <AccordionSummary
                 expandIcon={<Add />}
                 sx={{ bgcolor: "#f9f9f9" }}

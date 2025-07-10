@@ -135,7 +135,11 @@ const ProductPage = () => {
       <Grid container spacing={4}>
         <Grid item xs={12} md={6}>
           <img
-            src={product.image || "https://via.placeholder.com/500"}
+            src={
+              selectedVariant?.image ||
+              product.image ||
+              "https://via.placeholder.com/500"
+            }
             alt={product.name}
             style={{ width: "100%", borderRadius: 8 }}
           />
@@ -145,7 +149,7 @@ const ProductPage = () => {
             {product.name}
           </Typography>
           <Typography variant="h6" color="primary" gutterBottom>
-            ₹{product.price?.toFixed(2)}
+            ₹{selectedVariant?.price?.toFixed(2) ?? product.price?.toFixed(2)}
           </Typography>
           <Typography variant="body1" color="text.secondary" paragraph>
             {product.description}
@@ -153,30 +157,37 @@ const ProductPage = () => {
         </Grid>
       </Grid>
 
-      {/* Variant Block */}
+      {/* Variant Selector */}
       {product.variants?.length > 0 && (
         <Box mt={4}>
           <Typography variant="h6" gutterBottom>
-            Select Size:
+            Select Color:
           </Typography>
           <Box display="flex" flexWrap="wrap">
-            {sizes.map((size, idx) =>
-              renderOptionBox(size, selectedSize === size, () => {
-                setSelectedSize(size);
-                setSelectedColor(""); // Reset color when size changes
-              })
+            {[...new Set(product.variants.map((variant) => variant.color))].map(
+              (color) =>
+                renderOptionBox(color, selectedColor === color, () => {
+                  setSelectedColor(color);
+                  setSelectedSize(""); // reset size when color changes
+                })
             )}
           </Box>
 
-          {selectedSize && (
+          {selectedColor && (
             <>
               <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-                Select Color:
+                Select Size:
               </Typography>
               <Box display="flex" flexWrap="wrap">
-                {colors.map((color, idx) =>
-                  renderOptionBox(color, selectedColor === color, () =>
-                    setSelectedColor(color)
+                {[
+                  ...new Set(
+                    product.variants
+                      .filter((v) => v.color === selectedColor)
+                      .map((v) => v.size)
+                  ),
+                ].map((size) =>
+                  renderOptionBox(size, selectedSize === size, () =>
+                    setSelectedSize(size)
                   )
                 )}
               </Box>
@@ -189,8 +200,8 @@ const ProductPage = () => {
                 ₹{selectedVariant.price?.toFixed(2)}
               </Typography>
               {selectedVariant.stock < 10 && (
-                <Typography variant="body2" color="warning">
-                  left: {selectedVariant.stock ?? "N/A"}
+                <Typography variant="body2" color="warning.main">
+                  Stock left: {selectedVariant.stock ?? "N/A"}
                 </Typography>
               )}
             </Box>
@@ -200,7 +211,7 @@ const ProductPage = () => {
             <Button
               variant="contained"
               color="primary"
-              disabled={!selectedVariant}
+              disabled={!selectedColor || !selectedSize}
               onClick={handleAddToCart}
             >
               Add to Cart
