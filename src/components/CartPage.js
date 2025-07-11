@@ -90,48 +90,79 @@ const CartPage = () => {
       price: item.variant?.price || item.price,
     }));
 
-    axios
-      .post(
-        `http://localhost:8080/orders/user/${userId}`, //create order api
-        {
-          items,
-          totalAmount: parseFloat(totalAmount),
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      )
-      .then((response) => {
-        const { status, message, orderId } = response.data;
+    navigate("/order/checkout", {
+      state: {
+        userId,
+        items,
+        totalAmount: parseFloat(totalAmount),
+        itemCount: cartItems.reduce((sum, item) => sum + item.quantity, 0),
+      },
+    });
 
-        if (status === 200 || orderId != null) {
-          localStorage.removeItem("cart");
-          setCartItems([]);
-          navigate("/order/checkout", {
-            state: {
-              orderId,
-              amount: totalAmount,
-            },
-          });
-        } else {
-          setSnackbar({
-            open: true,
-            message: message || "Order failed. Please try again.",
-            severity: "error",
-          });
-        }
-      })
-      .catch((error) => {
-        console.error("Checkout error:", error);
-        setSnackbar({
-          open: true,
-          message: "Something went wrong. Please try again later.",
-          severity: "error",
-        });
-      });
+    // axios
+    //   .post(
+    //     `http://localhost:8080/orders/user/${userId}`, //create order api
+    //     {
+    //       items,
+    //       totalAmount: parseFloat(totalAmount),
+    //     },
+    //     {
+    //       headers: {
+    //         Authorization: `Bearer ${token}`,
+    //       },
+    //     }
+    //   )
+    //   .then((response) => {
+    //     const { status, message, orderId } = response.data;
+
+    //     if (status === 200 || orderId != null) {
+    //       localStorage.removeItem("cart");
+    //       setCartItems([]);
+    // navigate("/order/checkout", {
+    //   state: {
+    //     //orderId,
+    //     amount: totalAmount,
+    //   },
+    // });
+    //       } else {
+    //         setSnackbar({
+    //           open: true,
+    //           message: message || "Order failed. Please try again.",
+    //           severity: "error",
+    //         });
+    //       }
+    //     })
+    //     .catch((error) => {
+    //       console.error("Checkout error:", error);
+    //       setSnackbar({
+    //         open: true,
+    //         message: "Something went wrong. Please try again later.",
+    //         severity: "error",
+    //       });
+    //     });
   };
+
+  useEffect(() => {
+    if (!userId || cartItems.length === 0) return;
+
+    const saveCartToBackend = async () => {
+      try {
+        await axios.post(
+          `http://localhost:8080/cart/save/${userId}`,
+          { items: cartItems },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+      } catch (error) {
+        console.error("Failed to save cart:", error);
+      }
+    };
+
+    saveCartToBackend();
+  }, [cartItems]);
 
   const handleCloseSnackbar = () => {
     setSnackbar({ ...snackbar, open: false });

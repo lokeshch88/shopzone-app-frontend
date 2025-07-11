@@ -85,6 +85,8 @@ const PaymentPage = () => {
             },
           }
         );
+        localStorage.removeItem("cart");
+        // setCartItems([]);
         navigate("/payment-result", {
           state: {
             paymentStatus: "success",

@@ -240,69 +240,98 @@ const HomeCheck = () => {
           }}
         >
           <Grid container spacing={4} justifyContent="center">
-            {filteredProducts.map((product) => (
-              <Grid item key={product.id} xs={12} sm={6}>
-                <Card
-                  sx={{
-                    height: 350,
-                    display: "flex",
-                    flexDirection: "column",
-                    justifyContent: "space-between",
-                    transition: "transform 0.3s, box-shadow 0.3s",
-                    "&:hover": {
-                      transform: "scale(1.02)",
-                      boxShadow: 6,
-                    },
-                  }}
-                >
-                  <CardActionArea
-                    onClick={() => navigate(`/product/${product.id}`)}
-                    sx={{ flexGrow: 1 }}
+            {filteredProducts.map((product) => {
+              const comparePrice =
+                product.comparePrice && product.comparePrice > 0
+                  ? product.comparePrice
+                  : product.price + 100;
+
+              return (
+                <Grid item key={product.id} xs={12} sm={6}>
+                  <Card
+                    sx={{
+                      height: 350,
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "space-between",
+                      transition: "transform 0.3s, box-shadow 0.3s",
+                      "&:hover": {
+                        transform: "scale(1.02)",
+                        boxShadow: 6,
+                      },
+                    }}
                   >
-                    <CardMedia
-                      component="img"
-                      image={product.image || "https://via.placeholder.com/300"}
-                      alt={product.name}
-                      height="150"
-                      sx={{ objectFit: "cover" }}
-                    />
-                    <CardContent sx={{ flexGrow: 1, px: 2 }}>
-                      <Typography variant="h6" fontWeight="bold" gutterBottom>
-                        {product.name}
-                      </Typography>
-                      <Typography
-                        color="text.secondary"
-                        variant="body2"
-                        sx={{ mb: 1 }}
-                      >
-                        {truncateText(product.description, 25)}
-                      </Typography>
-                      <Typography variant="subtitle1" color="primary">
-                        ₹{product.price}
-                      </Typography>
-                    </CardContent>
-                  </CardActionArea>
-                  <CardActions
-                    sx={{ justifyContent: "space-between", px: 2, pb: 2 }}
-                  >
-                    <Button
-                      size="small"
-                      variant="contained"
-                      onClick={() => handleAddToCart(product)}
-                    >
-                      Add to Cart
-                    </Button>
-                    <Button
-                      size="small"
-                      variant="outlined"
+                    <CardActionArea
                       onClick={() => navigate(`/product/${product.id}`)}
+                      sx={{ flexGrow: 1 }}
                     >
-                      Details
-                    </Button>
-                  </CardActions>
-                </Card>
-              </Grid>
-            ))}
+                      <CardMedia
+                        component="img"
+                        image={
+                          product.image || "https://via.placeholder.com/300"
+                        }
+                        alt={product.name}
+                        height="150"
+                        sx={{ objectFit: "cover" }}
+                      />
+                      <CardContent sx={{ flexGrow: 1, px: 2 }}>
+                        <Typography variant="h6" fontWeight="bold" gutterBottom>
+                          {product.name}
+                        </Typography>
+                        <Typography
+                          color="text.secondary"
+                          variant="body2"
+                          sx={{ mb: 1 }}
+                        >
+                          {truncateText(product.description, 25)}
+                        </Typography>
+
+                        {/* Compare Price + Selling Price */}
+                        <Box
+                          sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                        >
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              textDecoration: "line-through",
+                              color: "grey.600",
+                            }}
+                          >
+                            ₹{comparePrice}
+                          </Typography>
+                          <Typography
+                            variant="subtitle1"
+                            color="primary"
+                            fontWeight="bold"
+                          >
+                            ₹{product.price}
+                          </Typography>
+                        </Box>
+                      </CardContent>
+                    </CardActionArea>
+
+                    <CardActions
+                      sx={{ justifyContent: "space-between", px: 2, pb: 2 }}
+                    >
+                      <Button
+                        size="small"
+                        variant="contained"
+                        onClick={() => handleAddToCart(product)}
+                      >
+                        Add to Cart
+                      </Button>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={() => navigate(`/product/${product.id}`)}
+                      >
+                        Details
+                      </Button>
+                    </CardActions>
+                  </Card>
+                </Grid>
+              );
+            })}
             {filteredProducts.length === 0 && (
               <Typography textAlign="center" sx={{ width: "100%", mt: 5 }}>
                 No products found.

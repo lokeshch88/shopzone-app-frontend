@@ -27,10 +27,14 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
+  InputAdornment,
+  Tooltip,
 } from "@mui/material";
 import { ArrowBack, Add, Search } from "@mui/icons-material";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 
 const ProductManagement = () => {
   const [products, setProducts] = useState([]);
@@ -43,6 +47,7 @@ const ProductManagement = () => {
     quantityInStock: "",
     brand: "",
     categoryId: "",
+    comparePrice: "",
     sku: "",
     mrp: "",
     isActive: true,
@@ -105,6 +110,14 @@ const ProductManagement = () => {
     }
 
     if (dialogMode === "add") {
+      // if (!selectedProduct.comparePrice) {
+      //   setSnackbar({
+      //     open: true,
+      //     message: "Compare Price is required.",
+      //     severity: "error",
+      //   });
+      //   return;
+      // }
       axios
         .post("http://localhost:8080/products/create", selectedProduct, {
           headers: { Authorization: `Bearer ${token}` },
@@ -359,7 +372,7 @@ const ProductManagement = () => {
           <Box
             sx={{
               display: "grid",
-              gridTemplateColumns: "1fr 1fr",
+              gridTemplateColumns: "1fr 1fr 1fr",
               gap: 2,
             }}
           >
@@ -388,6 +401,30 @@ const ProductManagement = () => {
                 })
               }
               size="small"
+            />
+            <TextField
+              label="Compare At Price *"
+              type="number"
+              fullWidth
+              variant="outlined"
+              value={selectedProduct?.comparePrice || ""}
+              disabled={dialogMode === "view"}
+              onChange={(e) =>
+                setSelectedProduct({
+                  ...selectedProduct,
+                  comparePrice: e.target.value,
+                })
+              }
+              size="small"
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <Tooltip title="Original price before discount (e.g., shown struck-through)">
+                      <HelpOutlineIcon fontSize="small" />
+                    </Tooltip>
+                  </InputAdornment>
+                ),
+              }}
             />
             <TextField
               label="MRP"

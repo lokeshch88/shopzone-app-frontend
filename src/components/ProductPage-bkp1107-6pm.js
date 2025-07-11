@@ -8,11 +8,6 @@ import {
   Alert,
   CircularProgress,
   Box,
-  Divider,
-  Rating,
-  Card,
-  CardContent,
-  CardMedia,
 } from "@mui/material";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -28,26 +23,12 @@ const ProductPage = () => {
     message: "",
     severity: "success",
   });
-  const [recommended, setRecommended] = useState([]);
 
   useEffect(() => {
     axios
       .get(`http://localhost:8080/products/${id}`)
       .then((response) => {
         setProduct(response.data);
-        //fetch recomended products
-        axios
-          .get(
-            `http://localhost:8080/products/category/${response.data.categoryId}`
-          )
-          .then((res) => {
-            // Exclude current product from recommended
-            const filtered = res.data.filter((p) => p.id !== response.data.id);
-            setRecommended(filtered.slice(0, 6)); // Limit to 6
-          })
-          .catch((err) => {
-            console.error("Error fetching recommended products:", err);
-          });
       })
       .catch((error) => {
         console.error("Failed to fetch product", error);
@@ -59,14 +40,18 @@ const ProductPage = () => {
       });
   }, [id]);
 
+  const sizes = [...new Set(product?.variants?.map((v) => v.size))];
+  const colors = [
+    ...new Set(
+      product?.variants
+        ?.filter((v) => v.size === selectedSize)
+        .map((v) => v.color)
+    ),
+  ];
+
   const selectedVariant = product?.variants?.find(
     (v) => v.size === selectedSize && v.color === selectedColor
   );
-
-  const comparePrice =
-    selectedVariant?.comparePrice ||
-    product?.comparePrice ||
-    (product?.price ?? 0) + 100;
 
   const handleAddToCart = () => {
     if (!selectedVariant) {
@@ -86,22 +71,24 @@ const ProductPage = () => {
         `${item.id}_${item.variant?.size}_${item.variant?.color}` === itemKey
     );
 
-    const updatedCart =
-      index > -1
-        ? existingCart.map((item, i) =>
-            i === index ? { ...item, quantity: item.quantity + 1 } : item
-          )
-        : [
-            ...existingCart,
-            {
-              id: product.id,
-              name: product.name,
-              image: product.image,
-              description: product.description,
-              variant: selectedVariant,
-              quantity: 1,
-            },
-          ];
+    let updatedCart;
+    if (index > -1) {
+      updatedCart = existingCart.map((item, i) =>
+        i === index ? { ...item, quantity: item.quantity + 1 } : item
+      );
+    } else {
+      updatedCart = [
+        ...existingCart,
+        {
+          id: product.id,
+          name: product.name,
+          image: product.imageUrl,
+          description: product.description,
+          variant: selectedVariant,
+          quantity: 1,
+        },
+      ];
+    }
 
     localStorage.setItem("cart", JSON.stringify(updatedCart));
     setSnackbar({
@@ -115,9 +102,16 @@ const ProductPage = () => {
     setSnackbar({ ...snackbar, open: false });
   };
 
+  if (!product) {
+    return (
+      <Container sx={{ py: 5 }}>
+        <CircularProgress />
+      </Container>
+    );
+  }
+
   const renderOptionBox = (label, selected, onClick) => (
     <Box
-      key={label}
       onClick={onClick}
       sx={{
         border: selected ? "2px solid #1976d2" : "1px solid #ccc",
@@ -136,17 +130,8 @@ const ProductPage = () => {
     </Box>
   );
 
-  if (!product) {
-    return (
-      <Container sx={{ py: 5, textAlign: "center" }}>
-        <CircularProgress />
-      </Container>
-    );
-  }
-
   return (
     <Container sx={{ py: 5 }}>
-      {/* Product Info */}
       <Grid container spacing={4}>
         <Grid item xs={12} md={6}>
           <img
@@ -163,42 +148,28 @@ const ProductPage = () => {
           <Typography variant="h4" gutterBottom>
             {product.name}
           </Typography>
-
-          <Box display="flex" alignItems="center" gap={2}>
-            <Typography
-              variant="body1"
-              sx={{ textDecoration: "line-through", color: "text.secondary" }}
-            >
-              ₹{comparePrice.toFixed(2)}
-            </Typography>
-            <Typography variant="h6" color="primary">
-              ₹{selectedVariant?.price?.toFixed(2) ?? product.price?.toFixed(2)}
-            </Typography>
-          </Box>
-
-          <Typography
-            variant="body1"
-            color="text.secondary"
-            paragraph
-            sx={{ mt: 2 }}
-          >
+          <Typography variant="h6" color="primary" gutterBottom>
+            ₹{selectedVariant?.price?.toFixed(2) ?? product.price?.toFixed(2)}
+          </Typography>
+          <Typography variant="body1" color="text.secondary" paragraph>
             {product.description}
           </Typography>
         </Grid>
       </Grid>
 
-      {/* Variant Selection */}
+      {/* Variant Selector */}
       {product.variants?.length > 0 && (
         <Box mt={4}>
           <Typography variant="h6" gutterBottom>
             Select Color:
           </Typography>
           <Box display="flex" flexWrap="wrap">
-            {[...new Set(product.variants.map((v) => v.color))].map((color) =>
-              renderOptionBox(color, selectedColor === color, () => {
-                setSelectedColor(color);
-                setSelectedSize("");
-              })
+            {[...new Set(product.variants.map((variant) => variant.color))].map(
+              (color) =>
+                renderOptionBox(color, selectedColor === color, () => {
+                  setSelectedColor(color);
+                  setSelectedSize(""); // reset size when color changes
+                })
             )}
           </Box>
 
@@ -230,7 +201,7 @@ const ProductPage = () => {
               </Typography>
               {selectedVariant.stock < 10 && (
                 <Typography variant="body2" color="warning.main">
-                  Only {selectedVariant.stock} left in stock!
+                  Stock left: {selectedVariant.stock ?? "N/A"}
                 </Typography>
               )}
             </Box>
@@ -252,82 +223,6 @@ const ProductPage = () => {
         </Box>
       )}
 
-      {/* Product Details */}
-      <Divider sx={{ my: 5 }} />
-      <Typography variant="h5" gutterBottom>
-        Product Details
-      </Typography>
-      <Typography variant="body2">
-        <strong>Brand:</strong> {product.brand || "N/A"}
-      </Typography>
-      <Typography variant="body2">
-        <strong>SKU:</strong> {product.sku || "N/A"}
-      </Typography>
-      <Typography variant="body2">
-        <strong>Category:</strong> {product.category?.name || "N/A"}
-      </Typography>
-
-      {/* Ratings & Reviews */}
-      <Divider sx={{ my: 5 }} />
-      <Typography variant="h5" gutterBottom>
-        Ratings & Reviews
-      </Typography>
-      <Box display="flex" alignItems="center" gap={1}>
-        <Rating value={4.3} precision={0.1} readOnly />
-        <Typography variant="body2">(256 reviews)</Typography>
-      </Box>
-      <Typography variant="body2" sx={{ mt: 1 }}>
-        ⭐ "Fantastic quality!" — User123
-      </Typography>
-      <Typography variant="body2">
-        ⭐ "Fast delivery and good fit." — Priya
-      </Typography>
-
-      {/* Recommended Products */}
-      <Divider sx={{ my: 5 }} />
-      <Typography variant="h5" gutterBottom>
-        Recommended Products
-      </Typography>
-      <Grid container spacing={2}>
-        {recommended.length > 0 ? (
-          recommended.map((item) => (
-            <Grid item xs={12} sm={6} md={4} key={item.id}>
-              <Card
-                sx={{ cursor: "pointer" }}
-                onClick={() => navigate(`/product/${item.id}`)}
-              >
-                <CardMedia
-                  component="img"
-                  height="140"
-                  image={item.image || "https://via.placeholder.com/200"}
-                  alt={item.name}
-                />
-                <CardContent>
-                  <Typography variant="subtitle1" fontWeight="bold">
-                    {item.name}
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{ textDecoration: "line-through" }}
-                  >
-                    ₹{(item.comparePrice || item.price + 100).toFixed(2)}
-                  </Typography>
-                  <Typography variant="body1" color="primary">
-                    ₹{item.price.toFixed(2)}
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))
-        ) : (
-          <Typography variant="body2" color="text.secondary" sx={{ ml: 2 }}>
-            No recommended products found.
-          </Typography>
-        )}
-      </Grid>
-
-      {/* Snackbar */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={2500}

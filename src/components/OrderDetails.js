@@ -1,4 +1,3 @@
-// src/pages/OrderDetails.jsx
 import React, { useEffect, useState } from "react";
 import {
   Box,
@@ -11,9 +10,22 @@ import {
   ListItem,
   ListItemText,
   Button,
+  Stepper,
+  Step,
+  StepLabel,
+  ListItemButton,
 } from "@mui/material";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
+
+// Define order status flow
+const ORDER_FLOW = [
+  "PLACED",
+  "CONFIRMED",
+  "SHIPPED",
+  "OUT_FOR_DELIVERY",
+  "DELIVERED",
+];
 
 const OrderDetails = () => {
   const { orderId } = useParams();
@@ -55,12 +67,48 @@ const OrderDetails = () => {
     );
   }
 
+  const currentStep = ORDER_FLOW.indexOf(order.status?.toUpperCase());
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "DELIVERED":
+        return "success";
+      case "OUT_FOR_DELIVERY":
+        return "info";
+      case "SHIPPED":
+        return "primary";
+      case "CONFIRMED":
+        return "warning";
+      case "PLACED":
+        return "default";
+      default:
+        return "default";
+    }
+  };
+
   return (
     <Box sx={{ p: 3 }}>
       <Button onClick={() => navigate(-1)} sx={{ mb: 2 }}>
         ← Back
       </Button>
 
+      {/* Order Status Stepper */}
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>
+            Order Progress
+          </Typography>
+          <Stepper activeStep={currentStep} alternativeLabel>
+            {ORDER_FLOW.map((label) => (
+              <Step key={label}>
+                <StepLabel>{label.replace(/_/g, " ")}</StepLabel>
+              </Step>
+            ))}
+          </Stepper>
+        </CardContent>
+      </Card>
+
+      {/* Order Summary */}
       <Card sx={{ mb: 2 }}>
         <CardContent>
           <Typography variant="h6">Order Details</Typography>
@@ -70,31 +118,35 @@ const OrderDetails = () => {
           </Typography>
           <Typography>Total: ₹{order.totalAmount}</Typography>
           <Typography>User ID: {order.userId}</Typography>
-          <Chip label={order.status} sx={{ mt: 1 }} />
+          <Chip
+            label={order.status}
+            color={getStatusColor(order.status)}
+            sx={{ mt: 1 }}
+          />
         </CardContent>
       </Card>
 
-      <Card>
-        <CardContent>
-          <Typography variant="h6">Ordered Items</Typography>
-          {order.items?.length > 0 ? (
-            <List>
-              {order.items.map((item, index) => (
-                <ListItem key={index} divider>
-                  <ListItemText
-                    primary={`Product ID: ${item.productId}`}
-                    secondary={`Quantity: ${item.quantity}, Price: ₹${
-                      item.price ?? "N/A"
-                    }, Size: ${item.size ?? "-"}, Color: ${item.color ?? "-"}`}
-                  />
-                </ListItem>
-              ))}
-            </List>
-          ) : (
-            <Typography>No items found in this order.</Typography>
-          )}
-        </CardContent>
-      </Card>
+      {/* Order Items */}
+      {order.items?.length > 0 ? (
+        <List>
+          {order.items.map((item, index) => (
+            <ListItemButton
+              key={index}
+              divider
+              onClick={() => navigate(`/product/${item.productId}`)}
+            >
+              <ListItemText
+                primary={`Name: ${item.name}`}
+                secondary={`Quantity: ${item.quantity}, Price: ₹${
+                  item.price ?? "N/A"
+                }, Size: ${item.size ?? "-"}, Color: ${item.color ?? "-"}`}
+              />
+            </ListItemButton>
+          ))}
+        </List>
+      ) : (
+        <Typography>No items found in this order.</Typography>
+      )}
     </Box>
   );
 };

@@ -8,19 +8,18 @@ import {
   Card,
   CardContent,
   TextField,
-  CircularProgress,
 } from "@mui/material";
 import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 
 const CheckoutSummaryPage = () => {
   const navigate = useNavigate();
-  const { state } = useLocation();
-  const { orderId } = state || {};
+  const location = useLocation();
+  const token = localStorage.getItem("authToken");
 
-  const [order, setOrder] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [cartItems, setCartItems] = useState([]);
+  const { userId, items = [], itemCount = 0 } = location.state || {};
+
+  const [cartItems, setCartItems] = useState(items);
   const [totalAmount, setTotalAmount] = useState(0);
   const [finalAmount, setFinalAmount] = useState(0);
   const [coupon, setCoupon] = useState("");
@@ -32,10 +31,26 @@ const CheckoutSummaryPage = () => {
   const [selectedAddress, setSelectedAddress] = useState(null);
   const [deliveryDate, setDeliveryDate] = useState("");
 
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
+
+  // 📌 Calculate total on cartItems change
+  useEffect(() => {
+    if (cartItems && cartItems.length > 0) {
+      const total = cartItems.reduce((sum, item) => {
+        const price = item.price || item.variant?.price || 0;
+        return sum + price * item.quantity;
+      }, 0);
+      setTotalAmount(total);
+      setFinalAmount(total + deliveryFee - discount);
+    }
+  }, [cartItems, discount, deliveryFee]);
+
   useEffect(() => {
     const fetchAddresses = async () => {
-      const token = localStorage.getItem("authToken");
-      const userId = localStorage.getItem("userId");
       try {
         const res = await axios.get(
           `http://localhost:8080/address/user/${userId}`,
@@ -55,7 +70,32 @@ const CheckoutSummaryPage = () => {
     };
 
     fetchAddresses();
-  }, []);
+  }, [userId, token]);
+
+  useEffect(() => {
+    if (selectedAddress?.id) {
+      const fetchEstimatedDeliveryDate = async () => {
+        try {
+          const res = await axios.get(
+            `http://localhost:8080/checkout/delivery/estimate/${selectedAddress.id}`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+          if (res.data?.estimatedDate) {
+            setDeliveryDate(new Date(res.data.estimatedDate).toDateString());
+          }
+        } catch (err) {
+          console.error("Failed to fetch delivery estimate:", err);
+          setDeliveryDate("Unavailable");
+        }
+      };
+
+      fetchEstimatedDeliveryDate();
+    }
+  }, [selectedAddress, token]);
 
   const formatAddress = (addr) => {
     return [
@@ -69,54 +109,6 @@ const CheckoutSummaryPage = () => {
       .filter(Boolean)
       .join(", ");
   };
-  const token = localStorage.getItem("authToken");
-  const fetchEstimatedDeliveryDate = async (addressId) => {
-    try {
-      const res = await axios.get(
-        `http://localhost:8080/checkout/delivery/estimate/${addressId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      if (res.data?.estimatedDate) {
-        setDeliveryDate(new Date(res.data.estimatedDate).toDateString());
-      }
-    } catch (err) {
-      console.error("Failed to fetch delivery estimate:", err);
-      setDeliveryDate("Unavailable");
-    }
-  };
-
-  useEffect(() => {
-    if (selectedAddress?.id) {
-      fetchEstimatedDeliveryDate(selectedAddress.id);
-    }
-  }, [selectedAddress]);
-
-  useEffect(() => {
-    const fetchOrder = async () => {
-      try {
-        const res = await axios.get(`http://localhost:8080/orders/${orderId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        const data = res.data;
-        setOrder(data);
-        setCartItems(data.items || []);
-        setTotalAmount(data.totalAmount || 0);
-        setFinalAmount((data.totalAmount || 0) + deliveryFee);
-      } catch (err) {
-        console.error("Failed to load order summary:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (orderId) fetchOrder();
-  }, [orderId, deliveryFee]);
 
   const applyCoupon = () => {
     if (coupon.trim().toUpperCase() === "SAVE50") {
@@ -131,26 +123,51 @@ const CheckoutSummaryPage = () => {
   };
 
   const handleProceed = () => {
-    navigate("/proceed-payment", {
-      state: {
-        orderId,
-        amount: finalAmount,
-        coupon,
-        discount,
-      },
-    });
+    axios
+      .post(
+        `http://localhost:8080/orders/user/${userId}`,
+        {
+          items: cartItems,
+          totalAmount,
+          addressId: selectedAddress?.id || null, // send selected address ID
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      )
+      .then((response) => {
+        const { status, message, orderId } = response.data;
+
+        if (status === 200 || orderId != null) {
+          // localStorage.removeItem("cart");
+          // setCartItems([]);
+          navigate("/proceed-payment", {
+            state: {
+              orderId,
+              amount: finalAmount,
+              coupon,
+              discount,
+            },
+          });
+        } else {
+          setSnackbar({
+            open: true,
+            message: message || "Order failed. Please try again.",
+            severity: "error",
+          });
+        }
+      })
+      .catch((error) => {
+        console.error("Checkout error:", error);
+        setSnackbar({
+          open: true,
+          message: "Something went wrong. Please try again later.",
+          severity: "error",
+        });
+      });
   };
-
-  const formatDateTime = (dateStr) =>
-    dateStr ? new Date(dateStr).toLocaleString() : "N/A";
-
-  if (loading) {
-    return (
-      <Box sx={{ textAlign: "center", mt: 4 }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
 
   return (
     <Container sx={{ py: 4 }}>
@@ -158,6 +175,7 @@ const CheckoutSummaryPage = () => {
         Checkout Summary
       </Typography>
 
+      {/* Address Card */}
       <Card variant="outlined" sx={{ mb: 3 }}>
         <CardContent>
           <Typography variant="h6" gutterBottom>
@@ -231,6 +249,7 @@ const CheckoutSummaryPage = () => {
         </Typography>
       )}
 
+      {/* Coupon Card */}
       <Card variant="outlined" sx={{ mb: 3 }}>
         <CardContent>
           <Typography variant="h6">Apply Coupon</Typography>
@@ -260,29 +279,28 @@ const CheckoutSummaryPage = () => {
         </CardContent>
       </Card>
 
+      {/* Order Summary */}
       <Card variant="outlined" sx={{ mb: 3 }}>
         <CardContent>
           <Typography variant="h6" gutterBottom>
-            Order #{order.orderId}
+            Order Summary
           </Typography>
-          <Typography color="text.secondary">
-            Placed On: {formatDateTime(order.createdAt)}
-          </Typography>
-          <Typography sx={{ mb: 2 }}>Status: {order.status}</Typography>
+          <Typography sx={{ mb: 2 }}>Status: Pending</Typography>
 
-          {cartItems.map((item, index) => (
-            <Box
-              key={index}
-              sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}
-            >
-              <Typography>
-                Product #{item.productId} × {item.quantity}
-              </Typography>
-              <Typography>
-                ₹{item.price ? (item.price * item.quantity).toFixed(2) : "N/A"}
-              </Typography>
-            </Box>
-          ))}
+          {cartItems.map((item, index) => {
+            const price = item.price || item.variant?.price || 0;
+            return (
+              <Box
+                key={index}
+                sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}
+              >
+                <Typography>
+                  Product #{item.productId || item.id} × {item.quantity}
+                </Typography>
+                <Typography>₹{(price * item.quantity).toFixed(2)}</Typography>
+              </Box>
+            );
+          })}
 
           <Divider sx={{ my: 2 }} />
 
@@ -293,7 +311,7 @@ const CheckoutSummaryPage = () => {
 
           <Box sx={{ display: "flex", justifyContent: "space-between" }}>
             <Typography>Delivery Fee</Typography>
-            <Typography>₹50</Typography>
+            <Typography>₹{deliveryFee}</Typography>
           </Box>
 
           {discount > 0 && (

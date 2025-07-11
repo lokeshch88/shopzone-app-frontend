@@ -59,50 +59,49 @@ const OrdersPage = () => {
       {orders.length === 0 ? (
         <Typography>No orders found.</Typography>
       ) : (
-        <Grid container spacing={2}>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
           {orders.map((order, index) => (
-            <Grid item xs={12} md={6} key={index}>
-              <Card
-                sx={{
-                  cursor: "pointer",
-                  transition: "0.3s",
-                  "&:hover": { boxShadow: 6 },
-                }}
-                onClick={() => navigate(`/orders/${order.orderId}`)}
-              >
-                <CardContent>
-                  <Typography variant="subtitle1">
-                    <strong>Order ID:</strong> {order.orderId}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Date:{" "}
-                    {order.createdAt
-                      ? new Date(order.createdAt).toLocaleDateString()
-                      : "N/A"}
-                  </Typography>
-                  <Typography variant="body2">
-                    <strong>Total:</strong> ₹{order.totalAmount}
-                  </Typography>
-                  <Typography variant="body2">
-                    <strong>Items:</strong> {order.items?.length || 0}
-                  </Typography>
-                  <Chip
-                    label={order.status}
-                    size="small"
-                    color={
-                      order.status === "CONFIRMED"
-                        ? "success"
-                        : order.status === "PENDING"
-                        ? "warning"
-                        : "default"
-                    }
-                    sx={{ mt: 1 }}
-                  />
-                </CardContent>
-              </Card>
-            </Grid>
+            <Card
+              key={index}
+              sx={{
+                cursor: "pointer",
+                transition: "0.3s",
+                "&:hover": { boxShadow: 6 },
+              }}
+              onClick={() => navigate(`/orders/${order.orderId}`)}
+            >
+              <CardContent>
+                <Typography variant="subtitle1">
+                  <strong>Order ID:</strong> {order.orderId}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Date:{" "}
+                  {order.createdAt
+                    ? new Date(order.createdAt).toLocaleDateString()
+                    : "N/A"}
+                </Typography>
+                <Typography variant="body2">
+                  <strong>Total:</strong> ₹{order.totalAmount}
+                </Typography>
+                <Typography variant="body2">
+                  <strong>Items:</strong> {order.items?.length || 0}
+                </Typography>
+                <Chip
+                  label={order.status}
+                  size="small"
+                  color={
+                    order.status === "CONFIRMED"
+                      ? "success"
+                      : order.status === "PENDING"
+                      ? "warning"
+                      : "default"
+                  }
+                  sx={{ mt: 1 }}
+                />
+              </CardContent>
+            </Card>
           ))}
-        </Grid>
+        </Box>
       )}
     </Box>
   );
